@@ -32,7 +32,7 @@ openssl s_client -showcerts -connect <url>:443
 
 The output of the command should have the following parts:
 
-![Cert Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/AppGWCertExample.png)
+![Cert Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/AppGwCertExample.png)
 
 ### NGINX
 
