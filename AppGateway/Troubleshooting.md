@@ -97,6 +97,7 @@ foreach ($Listener in $ListenerCert)
 } 
 ```
 Sample Output:
+
 ![Sample Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/SampleOutput.png)
 
 ### Remove Trusted Root Certificate
