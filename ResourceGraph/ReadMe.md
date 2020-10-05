@@ -4,7 +4,12 @@ The following table contains useful Resource Graph Queries:
 
 ## Show all virtual machines ordered by name in descending order
 ```kusto 
-project name, location, type | where type =~ 'Microsoft.Compute/virtualMachines' | order by name desc| Count virtual machines by OS Type (Windows or Linux)| where type =~ 'Microsoft.Compute/virtualMachines' | summarize count() by tostring(properties.storageProfile.osDisk.osType) 
+project name, location, type 
+| where type =~ 'Microsoft.Compute/virtualMachines' 
+| order by name desc
+| Count virtual machines by OS Type (Windows or Linux)
+| where type =~ 'Microsoft.Compute/virtualMachines' 
+| summarize count() by tostring(properties.storageProfile.osDisk.osType) 
 ```
 ## List virtual machines that match something in their name (Example is for SQL)
 ```kusto 
