@@ -4,29 +4,26 @@ The following table contains useful Log Analytics Queries:
 ## List the free disk space of all computers in the workspace.
 ```kusto
 Perf
-| where ObjectName == "LogicalDisk" or // the object name used in Windows records
-ObjectName == "Logical Disk" // the object name used in Linux records
+| where ObjectName == "LogicalDisk" or ObjectName == "Logical Disk" 
 | where CounterName == "Free Megabytes"
-| summarize arg_max(TimeGenerated, *) by InstanceName // arg_max over TimeGenerated returns the latest record
+| summarize arg_max(TimeGenerated, *) by InstanceName 
 | project Computer , TimeGenerated, InstanceName, CounterValue
 ```
 ## List free disk percentage of all computers in the workspace
 ```kusto
 Perf
-| where ObjectName == "LogicalDisk" or // the object name used in Windows records
-ObjectName == "Logical Disk" // the object name used in Linux records
+| where ObjectName == "LogicalDisk" or ObjectName == "Logical Disk" 
 | where CounterName == "% Free Space" or CounterName == "% Used Space"
-| summarize arg_max(TimeGenerated, *) by InstanceName // arg_max over TimeGenerated returns the latest record
+| summarize arg_max(TimeGenerated, *) by InstanceName
 | project Computer , TimeGenerated, InstanceName, CounterValue
 ```
 ## Free Disk Percentage Alert Rule
 ```kusto
 Perf
-| where ObjectName == "LogicalDisk" or // the object name used in Windows records
-ObjectName == "Logical Disk" // the object name used in Linux records
+| where ObjectName == "LogicalDisk" or ObjectName == "Logical Disk"
 | where CounterName == "% Free Space" or CounterName == "% Used Space"
 | where CounterValue <= 20
-| summarize arg_max(TimeGenerated, *) by InstanceName // arg_max over TimeGenerated returns the latest record
+| summarize arg_max(TimeGenerated, *) by InstanceName 
 | project Computer, TimeGenerated, InstanceName, CounterValue
 ```
 ## Find Stale Computers:
@@ -82,7 +79,7 @@ AzureActivity
 | project TimeGenerated, Resource, VMSize, OperationName
 ```
 ## List the login events for windows machines
-Use this query to search for login events on all windows computes reporting within the scope defined when the query runs.
+Use this query to search for login events on all windows computes reporting within the scope defined when the query runs. The following table can help to decypher what type of login it is by referencing the Login Type code in the query output.
 |Logon Type|Description|
 |------|-----|
 |2|Interactive (Logon at keyboard and screen)|
