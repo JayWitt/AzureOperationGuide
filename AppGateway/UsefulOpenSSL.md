@@ -19,7 +19,7 @@ openssl rsa -in key.pem -out server.key
 ```
 # View certificates from web page
 ```bash
-openssl s_client -showcerts -connect <url>:443
+openssl s_client -showcerts -connect <FQDN>:443
 ```
 # View details of a certificate files
 ```bash
