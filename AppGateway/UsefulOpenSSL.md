@@ -45,5 +45,5 @@ openssl s_client -connect <serverToConnectTo>:443 -servername <hostnameToPresent
 # Check certs against full cert chain
 Example from [here](https://security.stackexchange.com/questions/142159/how-to-get-openssl-to-use-a-cert-without-specifying-it-via-cafile).
 ```bash
-openssl s_client -quiet -connect gmail.com:443 -CApath /dev/null
+openssl s_client -quiet -connect <FQDN>:443 -CApath /dev/null
 ```
