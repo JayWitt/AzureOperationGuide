@@ -11,6 +11,13 @@ The Application Gateway has many different components that are referenced in the
 
 * Root Certificate doesn’t match
    * How to detect the cert being used on the back end and if it is fully there.
+   * If your backend health reports that the Root Certificate doesn't match, it would be good to check a few different things:
+      <details><summary>**Confirm that Certificate (.cer file) used in the HTTP Setting that is used is indeed the root certificate used on the backend pool.**</summary>
+1. Step 1
+1. Step 2
+1. Step 3
+1. </details>
+
 * Rewrite Rule doesn’t work
    * Note that if the value in the rewrite rule doesn’t return anything then the whole header is excluded. This means that if you add a header that has “newHeader” = “{var_host}” and the host variable doesn’t have any value it in, newHeader will not even be shown in the results.
 * Path Based Rules don’t work
