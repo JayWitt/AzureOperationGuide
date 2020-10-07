@@ -11,12 +11,11 @@ The Application Gateway has many different components that are referenced in the
 
 * Root Certificate doesn’t match
    * How to detect the cert being used on the back end and if it is fully there.
-   * If your backend health reports that the Root Certificate doesn't match, it would be good to check a few different things:
-      <details><summary>**Confirm that Certificate (.cer file) used in the HTTP Setting that is used is indeed the root certificate used on the backend pool.**</summary>
-1. Step 1
-1. Step 2
-1. Step 3
-1. </details>
+   * If your backend health reports that the Root Certificate doesn't match, you should start with confirming that the Certificate (.cer file) used in the HTTP Setting is indeed the root certificate used on the backend pool by doing the following steps.
+      1. Use the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#certificate-requirements) steps to determine the root certificate that is on the backend.
+          1. If the whole chain is not listed (as in no errors on any of the certs in the chain) then there is a problem with how the certificate is being presented on the backend side. Check the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#certificate-requirements) section for more information on how to handle it for the different platforms listed (i.e. Nginx).
+      1. Use the [Listed Trusted Root Certificates](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#listed-trusted-root-certificates) script to confirm that the certificate is indeed the root of the chain used from step 1. **NOTE: You cannot use an intermediate certificate as the root. It must be the certificate that is signed by itself (i.e. a root certificate).**
+      1. If the root certificate from step 1 doesn't match the root certificate in step 2, then navigate to the site represented on the backend pool and export the root certificate. (For App GW v2 use [Export trusted root certificate (for v2 SKU)](https://docs.microsoft.com/en-us/azure/application-gateway/certificates-for-backend-authentication#export-trusted-root-certificate-for-v2-sku)). Add that exported certificate to the HTTP setting using [Add authentication/root certificates of back-end servers](https://docs.microsoft.com/en-us/azure/application-gateway/end-to-end-ssl-portal#add-authenticationroot-certificates-of-back-end-servers)
 
 * Rewrite Rule doesn’t work
    * Note that if the value in the rewrite rule doesn’t return anything then the whole header is excluded. This means that if you add a header that has “newHeader” = “{var_host}” and the host variable doesn’t have any value it in, newHeader will not even be shown in the results.
@@ -41,14 +40,16 @@ The output of the command should have the following parts:
 
 ![Cert Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/AppGwCertExample.png)
 
-### NGINX
+The following are additional notes depending on the system that is running on the backend pool.
+
+#### NGINX
 
 For servers that are running NGINX, the certificate must be in a base64 format and include the full certificate chain. The following windows command can be used to combine the individual certs into a full certificate in the correct order.
 
 ```powershell
 copy /b "server.cer"+"intermediate.cer"+"root.cer" full.cer
 ```
-### .Net Core / Kestrel
+#### .Net Core / Kestrel
 
 You cannot just use the PFX file that contains the whole chain. ***Need to Analyze more***
 
