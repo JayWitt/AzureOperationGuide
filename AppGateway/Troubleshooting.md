@@ -10,7 +10,6 @@ The Application Gateway has many different components that are referenced in the
 ## Common Problems:
 
 * Root Certificate doesn’t match
-   * How to detect the cert being used on the back end and if it is fully there.
    * If your backend health reports that the Root Certificate doesn't match, you should start with confirming that the Certificate (.cer file) used in the HTTP Setting is indeed the root certificate used on the backend pool by doing the following steps.
       1. Use the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#certificate-requirements) steps to determine the root certificate that is on the backend.
           1. If the whole chain is not listed (as in no errors on any of the certs in the chain) then there is a problem with how the certificate is being presented on the backend side. Check the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#certificate-requirements) section for more information on how to handle it for the different platforms listed (i.e. Nginx).
