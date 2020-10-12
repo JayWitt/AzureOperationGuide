@@ -18,6 +18,22 @@ The Application Gateway has many different components that are referenced in the
 
 * Rewrite Rule doesn’t work
    * Note that if the value in the rewrite rule doesn’t return anything then the whole header is excluded. This means that if you add a header that has “newHeader” = “{var_host}” and the host variable doesn’t have any value it in, newHeader will not even be shown in the results.
+   * Note that some of the existing headers may not return data. The following variables have been found to work:
+        |Header Name| Description| Value|
+        |-----------|------|--------|
+        | Referer|  This is the address of the previous web page from which a link to the currently requested page was followed. (The word "referrer" has been misspelled in the RFC as well as in most implementations to the point that it has become standard usage and is considered correct terminology)| {http_req_referer}|
+        | User-Agent| 	The user agent string of the user agent.| {http_req_user-agent}|
+        | X-Forwarded-Host|A de facto standard for identifying the original host requested by the client in the Host HTTP request header, since the host name and/or port of the reverse proxy (load balancer) may differ from the origin server handling the request. Superseded by Forwarded header.| {http_req_x_forwarded-host}|
+   * Make sure that the correct routing rules are selected when associating the rewrite rule. Keep the following in mind:
+        * The "Default rewrite setting" is meant to capture anything else that is not already represented by the other path based rules.
+        * As an example, if there was a rewrite rule that would add in an additional header, this is how the logic would work using the following configuration:
+
+        ![Routing Rules](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/routingrules.png)
+        |What is selected|What will happen if I go to test.mydemocloud.net/default.asp|What will happen if I go to test.mydemocloud.net/vars.asp|What will happen if I go to test.mydemocloud.net/info.asp|
+        |----------------|-----------------|-----|----|
+        | test.mydemocloud.net Path-based rule (Default rewrite setting) is the only thing selected| Yes. The rewrite rule will apply the header since this page is not accounted for in one of the routing rules.| No. The rewrite rule would **not** apply the headers because there is a path based rule that accounts for the /vars.asp page and it is not selected.| No. The rewrite rule would **not** apply the headers because there is a path based rule that accounts for the /info.asp page and it is not selected.|
+        | slash-vars.asp is the only thing selected| No. The rewrite rule will **not** apply the headers because the default.asp page is not covered by the routing rule.| Yes. The rewrite rule will apply the header because it matches the routing rule. | No. The rewrite rule will **not** apply the headers because the info.asp page is not covered by the routing rule.|
+        | slash-info.asp is the only thing selected|No. The rewrite rule will **not** apply the headers because the default.asp page is not covered by the routing rule.| No. The rewrite rule will **not** apply the headers because the vars.asp page is not covered by the routing rule.| Yes. The rewrite rule matches and thus it will add the header|
 * Path Based Rules don’t work
    * You may have to enter in multiple path based rules to cover scenarios where a folder is used as the URL verses an exact filename. Example: Two path based rules would need to be setup for /site1/app1/* and /site1/app1 in order to facilitate the routing of www.host.com/site1/app1 and www.host.com/site1/app1/login.asp as the resolution engine is specific.
 * WAF issues:
