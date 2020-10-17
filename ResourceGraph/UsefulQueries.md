@@ -163,3 +163,20 @@ where type == "microsoft.network/networksecuritygroups"
 | where rule.properties.destinationPortRange == 3389
 |project name, id, resourceGroup, rule.name, rule.properties.destinationPortRange
 ```
+## Identify managed disks that are not associated to a VM
+```kusto
+where type == "microsoft.compute/disks"
+| where managedBy == ""
+| extend SKU = sku.name
+| extend disksize = properties.diskSizeGB
+| extend diskstate = properties.diskState
+| project name, location, resourceGroup, SKU, disksize, diskstate
+```
+## Identify unused NICs
+```kusto
+resources
+ | where type == "microsoft.network/networkinterfaces" 
+ | extend VM = properties.virtualMachine.id
+ | extend PrivateLink = properties.privateEndpoint.id
+ | where  (VM == "" and PrivateLink == "")
+```
