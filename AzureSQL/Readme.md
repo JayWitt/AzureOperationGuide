@@ -21,3 +21,5 @@ You can use this script to quickly add a set of IP addresses to a SQL.
 ![IP Address Example](https://github.com/JayWitt/AzureOperationGuide/raw/main/AzureSQL/ipaddrs.png)
 
 ![Script Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AzureSQL/SQLFirewallIPs.png)
+
+[Link to Azure IP Addresses](https://github.com/JayWitt/AzureOperationGuide/IPAddressReference.md)
