@@ -37,3 +37,7 @@ https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-for-azure
 
 ## Logic Apps IPs:
 [Logic Apps IPs](https://docs.microsoft.com/en-us/azure/logic-apps/logic-apps-limits-and-config#multi-tenant-azure---outbound-ip-addresses)
+
+## Event Hubs IPs:
+[Event Hub IPs](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-ip-filtering#trusted-microsoft-services)
+
