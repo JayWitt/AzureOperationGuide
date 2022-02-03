@@ -1,7 +1,5 @@
 Import-Module Az.ResourceGraph
 
-
-
 $tenant = "<insert Tenant ID here>"
 
 Connect-AzAccount -Tenant $tenant
