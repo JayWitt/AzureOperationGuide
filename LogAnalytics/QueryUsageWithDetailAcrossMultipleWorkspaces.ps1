@@ -247,9 +247,9 @@ foreach ($sub in $LAWsSub)
                 {
                     $query = "$DT | summarize count() by ResourceId"
                 }
-        write-output $query
+
                 $QueryResults = Invoke-AzOperationalInsightsQuery -Workspace $Workspace -Query $query
-        write-output "error yet?"
+
                 $QueryResults.Results | Export-Csv -Path "$outputroot\detail\$sub-$WorkspaceName-$DT.csv" -NoTypeInformation
             }
         }
