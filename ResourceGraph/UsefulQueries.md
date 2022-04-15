@@ -203,23 +203,27 @@ NOTE: This query doesn't return data on alerts that have no action groups define
 ```kusto
 resources
 | where type == "microsoft.insights/scheduledqueryrules"
-| extend datasource = properties.source.dataSourceId
+| mv-expand datasource = properties.scopes
 | extend ds1 = split(datasource,"/")
 | extend dsSub = ds1[2]
 | extend dsRG = ds1[4]
 | extend dsProv = ds1[6]
 | extend dsRes = ds1[8]
 | extend enabled = properties.enabled
-| extend query = properties.source.query
-| mv-expand actionGroupID = properties.action.aznsAction.actionGroup
+| mv-expand  qu1 = properties.criteria.allOf
+| extend query = qu1.query
+| extend metric = qu1.metricName
+| mv-expand actionGroupID = properties.actions.actionGroups
 | extend linkID = toupper(tostring(actionGroupID))
 | join kind=leftouter (resources
 | where type == "microsoft.insights/actiongroups"
 | extend gName = name
 | extend linkID = toupper(tostring(id))
 | project gName, linkID) on linkID
-| project name, subscriptionId, resourceGroup, datasource, dsSub, dsRG, dsProv, dsRes, query, enabled, gName, linkID
+| project name, subscriptionId, resourceGroup, datasource, dsSub, dsRG, dsProv, dsRes, query, metric, enabled, gName, linkID
 ```
+<sub>Last Updated: 4-15-2022</sub>
+
 ## Query Azure Monitor Alerts (Log Search based filter by Provider Type)
 Add this line to the above script to be able to narrow down to Application Gateways.
 ```kusto
@@ -227,6 +231,7 @@ Add this line to the above script to be able to narrow down to Application Gatew
 ```
 
 ## Query Azure Monitor Alerts (Resource/Service Health and Activity Log based alerts)
+NOTE: Some Action Groups may be blank, but the linkID will be populated. In this case, the Action Group has a space in it which means it won't match. I need to figure out another creative way to get these to match.
 ```kusto
 resources
 | where type == "microsoft.insights/activitylogalerts"
@@ -244,6 +249,8 @@ resources
 | project gName, linkID) on linkID
 | project name, resourceGroup, subscriptionId, enabled, condition, gName, linkID
 ```
+<sub>Last Updated: 4-15-2022</sub>
+
 ## Query Azure Monitor Alerts (Resource/Service Health and Activity Log based alerts)
 Add this line to the above script to be able to narrow down to Application Gateways.
 ```kusto
