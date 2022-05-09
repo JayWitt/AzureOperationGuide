@@ -399,5 +399,29 @@ resources
 | mv-expand Impact = properties.Impact
 | extend ImpactedService = tostring(Impact.ImpactedService)) on ImpactedService,subscriptionId
 | project alertname, alertRG, subscriptionId, eventType, status, ImpactedService, trackingId, todatetime(impactStartTime), todatetime(impactMitigationTime), eventdescription, summary
+```
 
+## Query which VMs are using a specific extension.
+NOTE: This example looks for the VM Guest Health agent. You can change out "GuestHealth" in the below query to look for other extension names.
+```kusto
+Resources
+| where type == 'microsoft.compute/virtualmachines'
+| extend
+	JoinID = toupper(id),
+	OSName = tostring(properties.osProfile.computerName),
+	OSType = tostring(properties.storageProfile.osDisk.osType),
+	VMSize = tostring(properties.hardwareProfile.vmSize)
+| join kind=leftouter(
+	Resources
+	| where type == 'microsoft.compute/virtualmachines/extensions'
+	| extend
+		VMId = toupper(substring(id, 0, indexof(id, '/extensions'))),
+		ExtensionName = name
+) on $left.JoinID == $right.VMId
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| summarize Extensions = make_list(ExtensionName) by id, name, SubName, subscriptionId, OSName, OSType, VMSize
+| where Extensions contains "GuestHealth"
+| order by tolower(OSName) asc
 ```
