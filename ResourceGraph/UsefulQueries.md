@@ -210,6 +210,7 @@ resources
 | extend dsProv = ds1[6]
 | extend dsRes = ds1[8]
 | extend enabled = properties.enabled
+| extend severity = properties.severity 
 | mv-expand  qu1 = properties.criteria.allOf
 | extend query = qu1.query
 | extend metric = qu1.metricName
@@ -220,9 +221,9 @@ resources
 | extend gName = name
 | extend linkID = toupper(tostring(id))
 | project gName, linkID) on linkID
-| project name, subscriptionId, resourceGroup, datasource, dsSub, dsRG, dsProv, dsRes, query, metric, enabled, gName, linkID
+| project name, subscriptionId, resourceGroup, datasource, dsSub, dsRG, dsProv, dsRes, query, severity, metric, enabled, gName, linkID
 ```
-<sub>Last Updated: 4-15-2022</sub>
+<sub>Last Updated: 5-10-2022</sub>
 
 ## Query Azure Monitor Alerts (Log Search based filter by Provider Type)
 Add this line to the above script to be able to narrow down to Application Gateways.
@@ -249,7 +250,7 @@ resources
 | project gName, linkID) on linkID
 | project name, resourceGroup, subscriptionId, enabled, condition, gName, linkID
 ```
-<sub>Last Updated: 4-15-2022</sub>
+<sub>Last Updated: 5-10-2022</sub>
 
 ## Query Azure Monitor Alerts (Resource/Service Health and Activity Log based alerts)
 Add this line to the above script to be able to narrow down to Application Gateways.
@@ -264,6 +265,7 @@ resources
 | mv-expand actionGroupID = properties.actions
 | extend linkID = toupper(tostring(actionGroupID.actionGroupId))
 | extend criteria = properties.criteria
+| extend severity = properties.severity 
 | mv-expand scp1 = properties.scopes
 | extend ds1 =split (scp1,"/")
 | extend dsSub = ds1[2]
@@ -276,8 +278,10 @@ resources
 | extend gName = name
 | extend linkID = toupper(tostring(id))
 | project gName, linkID) on linkID
-| project name, subscriptionId, resourceGroup, description, dsSub, dsRG, dsProv, dsRes, criteria, enabled, gName, linkID
+| project name, subscriptionId, resourceGroup, description, dsSub, dsRG, dsProv, dsRes, criteria, severity, enabled, gName, linkID
 ```
+<sub>Last Updated: 5-10-2022</sub>
+
 ## Query Azure Monitor Alerts (Metrics based)
 Add this line to the above script to be able to narrow down to Application Gateways.
 ```kusto
@@ -289,6 +293,7 @@ resources
 | where type == "microsoft.alertsmanagement/smartdetectoralertrules"
 | extend alerttype = properties.detector.name
 | extend state = properties.state
+| extend severity = properties.severity 
 | mv-expand scp1 = properties.scopes
 | extend ds1 =split (scp1,"/")
 | extend dsSub = ds1[2]
@@ -302,8 +307,10 @@ resources
 | extend gName = name
 | extend linkID = toupper(tostring(id))
 | project gName, linkID) on linkID
-| project name, subscriptionId, resourceGroup, alerttype, state, gName, linkID
+| project name, subscriptionId, resourceGroup, alerttype, state, severity, gName, linkID
 ```
+<sub>Last Updated: 5-10-2022</sub>
+
 ## Query Action Group Details
 ```kusto
 resources
