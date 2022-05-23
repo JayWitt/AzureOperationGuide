@@ -432,3 +432,28 @@ Resources
 | where Extensions contains "GuestHealth"
 | order by tolower(OSName) asc
 ```
+
+## Query which reports the number of resources in each subscription with the number of unique tag values. (Count of tags per subscription)
+NOTE: This example looks for the VM Guest Health agent. You can change out "GuestHealth" in the below query to look for other extension names.
+```kusto
+Resources
+| extend Tag1 = tags.Tag1
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| summarize Total=count() by tostring(SubName),tostring(subscriptionId),tostring(Tag1)
+| order by SubName, Total
+```
+
+## Query which reports the unique tag value that has the maximum number of resources in each subscription. (Tag with the max count per subscription)
+NOTE: This example looks for the VM Guest Health agent. You can change out "GuestHealth" in the below query to look for other extension names.
+```kusto
+Resources
+| extend Tag1 = tags.Tag1
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| summarize Total=count() by tostring(SubName),tostring(Tag1),tostring(subscriptionId)
+| summarize tot=arg_max(Total,Tag1,*) by SubName
+| order by SubName, tot
+```
