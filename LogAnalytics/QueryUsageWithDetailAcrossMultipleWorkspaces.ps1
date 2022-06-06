@@ -2,10 +2,15 @@ Import-Module Az.ResourceGraph
 
 $tenantID = "<insert Tenant ID here>"
 $outputroot = "<path to where to store output>"
+$outfilename = "output.csv"
 
-Connect-AzAccount -Tenant $tenantID
+$context = Connect-AzAccount -Tenant $tenantID
+
+if (-not (Test-Path "$outputroot/data")) {New-Item -path "$outputroot/data" -itemType Directory}
 
 $LAWsSub = Search-AzGraph -first 1000 -query 'resources | where type == "microsoft.operationalinsights/workspaces" | distinct subscriptionId'
+
+$output = @()
 
 $lookup = @{
     "StorageFileLogs" = "AccountName";
@@ -84,7 +89,7 @@ $lookup = @{
     "ldap_request_errors_CL" = "_ResourceId";
     "LDAP_Request_Rrrors_TXT_CL" = "_ResourceId";
     "ldapstatuscheck_CL" = "_ResourceId";
-    "SecurityDetection" = "_ResourceId";
+    "SecurityDetection" = "Computer";
     "SQLAssessmentRecommendation" = "Computer";
     "W3CIISLog" = "sSiteName";
     "SecurityEvent" = "Computer";
@@ -224,7 +229,7 @@ foreach ($sub in $LAWsSub)
         $WorkspaceName = $LAW.name
         $ResourceGroupName = $LAW.resourceGroup
 
-        write-output $WorkspaceName
+        write-host -ForegroundColor Yellow "Workspace: $WorkspaceName"
 
         $Workspace = Get-AzOperationalInsightsWorkspace -ResourceGroupName $ResourceGroupName -Name $WorkspaceName
 
@@ -247,12 +252,42 @@ foreach ($sub in $LAWsSub)
                 {
                     $query = "$DT | summarize count() by ResourceId"
                 }
+                write-host -ForegroundColor Cyan "Working on $query"
+                Try {
+                    $QueryResults2 = Invoke-AzOperationalInsightsQuery -Workspace $Workspace -Query $query
 
-                $QueryResults = Invoke-AzOperationalInsightsQuery -Workspace $Workspace -Query $query
+                    Foreach ($line in $($QueryResults2.Results))
+                        {
 
-                $QueryResults.Results | Export-Csv -Path "$outputroot\detail\$sub-$WorkspaceName-$DT.csv" -NoTypeInformation
+                            $headers = $line | get-member -MemberType NoteProperty | Select-Object -ExcludeProperty 'Name'
+                            foreach ($hval in $($headers.name))
+                            {
+                                if ($hval -ne "count_")
+                                {
+                                    $otherHeader = $hval
+                                }
+                            }
+
+                            $tmp = New-Object -TypeName psobject
+                            $tmp | Add-Member -MemberType NoteProperty -Name SubID -Value $sub
+                            $tmp | Add-Member -MemberType NoteProperty -Name WorkspaceName -Value $WorkspaceName
+                            $tmp | Add-Member -MemberType NoteProperty -Name TableName -Value $DT
+                            $tmp | Add-Member -MemberType NoteProperty -Name IdentifierHeaderName -Value $otherHeader
+                            $tmp | Add-Member -MemberType NoteProperty -Name Identifier -Value $line.$otherHeader
+                            $tmp | Add-Member -MemberType NoteProperty -Name Count -Value $line.count_
+                            $output += $tmp
+
+                        }
+
+                }
+                Catch {
+                    write-output "Problem with $query"
+                }
+                
             }
         }
 
     }
 }
+
+$output | Export-Csv -Path "$outputroot\$outfilename" -NoTypeInformation
