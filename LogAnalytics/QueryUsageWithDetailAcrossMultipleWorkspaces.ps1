@@ -1,12 +1,11 @@
 Import-Module Az.ResourceGraph
 
-$tenantID = "<insert Tenant ID here>"
-$outputroot = "<path to where to store output>"
-$outfilename = "output.csv"
+$top = 20  # set to zero to get all records
+$outfilename = "<output file name that will be written in CSV format (example=output.csv)"
+$outdatapath = "<path to where to store output data collected from the subscriptions>"
+$outreportpath = "<path to where to store the report>"
 
 $context = Connect-AzAccount -Tenant $tenantID
-
-if (-not (Test-Path "$outputroot/data")) {New-Item -path "$outputroot/data" -itemType Directory}
 
 $LAWsSub = Search-AzGraph -first 1000 -query 'resources | where type == "microsoft.operationalinsights/workspaces" | distinct subscriptionId'
 
@@ -14,12 +13,12 @@ $output = @()
 
 $lookup = @{
     "StorageFileLogs" = "AccountName";
-    "AppDependencies" = "AppRoleName";
-    "AppExceptions" = "AppRoleName";
-    "AppMetrics" = "AppRoleName";
-    "AppPerformanceCounters" = "AppRoleName";
-    "AppRequests" = "AppRoleName";
-    "AppTraces" = "AppRoleName";
+    "AppDependencies" = "_ResourceId";
+    "AppExceptions" = "_ResourceId";
+    "AppMetrics" = "_ResourceId";
+    "AppPerformanceCounters" = "_ResourceId";
+    "AppRequests" = "_ResourceId";
+    "AppTraces" = "_ResourceId";
     "InsightsMetrics" = "_ResourceId";
     "SqlAtpStatus" = "HostResourceId";
     "SqlVulnerabilityAssessmentScanStatus" = "Computer";
@@ -214,10 +213,18 @@ $lookup = @{
     "PowerAutomate_CL" = "FlowDisplayName_s";
     "MicrosoftHealthcareApisAuditLogs" = "_ResourceId";
     "MSSQL_AOFailovers_CL" = "PROVIDER_INSTANCE_s";
+    "ADXQuery" = "_ResourceId";
+    "ADXTableDetails" = "_ResourceId";
+    "ADXTableUsageStatistics" = "_ResourceId";
 }
+
+$LAWMax = Search-AzGraph -first 1000 -query 'resources| where type == "microsoft.operationalinsights/workspaces"'
+$LAWMaxCount = $LawMax.Count
+$LAWCounter = 1
 
 foreach ($sub in $LAWsSub)
 {
+
     $sub = $sub.subscriptionId
 
     Set-AzContext -Subscription $sub -Tenant $tenantID
@@ -229,35 +236,74 @@ foreach ($sub in $LAWsSub)
         $WorkspaceName = $LAW.name
         $ResourceGroupName = $LAW.resourceGroup
 
+        $p3Complete = ($LAWCounter/$LAWMaxCount) * 100
+        Write-Progress -Activity "Processing Workspace $WorkspaceName" -PercentComplete $p3Complete -id 1 -CurrentOperation "Running"
+
         write-host -ForegroundColor Yellow "Workspace: $WorkspaceName"
 
         $Workspace = Get-AzOperationalInsightsWorkspace -ResourceGroupName $ResourceGroupName -Name $WorkspaceName
 
-        $query = 'Usage | where TimeGenerated > ago(32d) | where StartTime >= startofday(ago(31d)) and EndTime < startofday(now()) | where IsBillable == true | summarize BillableDataGB = sum(Quantity) / 1000. by bin(StartTime, 1d), DataType'
+        if ($top -eq 0)
+        {
+            $query = 'Usage | where TimeGenerated > ago(32d) | where StartTime >= startofday(ago(31d)) and EndTime < startofday(now()) | where IsBillable == true | summarize BillableDataGB = sum(Quantity) / 1000. by bin(StartTime, 1d), DataType'
+        } else
+        {
+            $query = 'Usage | where TimeGenerated > ago(32d) | where StartTime >= startofday(ago(31d)) and EndTime < startofday(now()) | where IsBillable == true | summarize BillableDataGB = sum(Quantity) / 1000. by bin(StartTime, 1d), DataType | top ' + $top + ' by BillableDataGB'
+        }
 
         $QueryResults = Invoke-AzOperationalInsightsQuery -Workspace $Workspace -Query $query
 
-        $QueryResults.Results | Export-Csv -Path "$outputroot\data\$sub-$WorkspaceName.csv" -NoTypeInformation
+        $QueryResults.Results | Export-Csv -Path "$outdatapath\$sub-$WorkspaceName.csv" -NoTypeInformation
 
         if ($($QueryResults.count) -gt 0)
         {
             $DataTypes = $queryResults.Results.DataType | Sort-Object | Get-Unique
 
+            $pMax = $DataTypes.count
+            if ($pMax -eq $null) {$pMax = 1}
+            $pCount = 1
+
             foreach ($DT in $DataTypes)
             {
+                $pComplete = ($pCount/$pMax) * 100
+                Write-Progress -Activity "Processing Table $DT" -PercentComplete $pComplete -id 2 -CurrentOperation "Running"
+
                 if ($lookup.ContainsKey($DT))
                 {
-                    $query = "$DT | summarize count() by $($lookup[$DT])"
+                    if ($top -eq 0)
+                    {
+                        $query = "$DT | summarize count() by $($lookup[$DT])"
+                    } else
+                    {
+                        $query = "$DT | summarize count() by $($lookup[$DT]) | top $top by $($lookup[$DT])"
+                    }
+
                 } else
                 {
-                    $query = "$DT | summarize count() by ResourceId"
+                    if ($top -eq 0)
+                    {
+                        $query = "$DT | summarize count() by ResourceId"
+                    } else
+                    {
+                        $query = "$DT | summarize count() by ResourceId | top $top by ResourceId"
+                    }
                 }
                 write-host -ForegroundColor Cyan "Working on $query"
                 Try {
+                    Write-Progress -Activity "Processing Table $DT" -PercentComplete $pComplete -id 2 -CurrentOperation "Running Query"
                     $QueryResults2 = Invoke-AzOperationalInsightsQuery -Workspace $Workspace -Query $query
 
+                    $p2Max = $($QueryResults2.Results).Count
+
+                    if ($p2Max -eq $null) {$p2Max = 1}
+                    $p2Count = 1
+
+                    Write-Progress -Activity "Processing Table $DT" -PercentComplete $pComplete -id 2 -CurrentOperation "Looping"
                     Foreach ($line in $($QueryResults2.Results))
                         {
+                            $p2Complete = ($p2Count/$p2Max) * 100
+                            $Identifier = $line.$otherHeader
+                            Write-Progress -Activity "Processing Field $otherHeader" -PercentComplete $p2Complete -id 3 -CurrentOperation "Parsing Data ($p2Count)[$Identifier]"
 
                             $headers = $line | get-member -MemberType NoteProperty | Select-Object -ExcludeProperty 'Name'
                             foreach ($hval in $($headers.name))
@@ -273,9 +319,29 @@ foreach ($sub in $LAWsSub)
                             $tmp | Add-Member -MemberType NoteProperty -Name WorkspaceName -Value $WorkspaceName
                             $tmp | Add-Member -MemberType NoteProperty -Name TableName -Value $DT
                             $tmp | Add-Member -MemberType NoteProperty -Name IdentifierHeaderName -Value $otherHeader
-                            $tmp | Add-Member -MemberType NoteProperty -Name Identifier -Value $line.$otherHeader
+                            $tmp | Add-Member -MemberType NoteProperty -Name Identifier -Value $Identifier
                             $tmp | Add-Member -MemberType NoteProperty -Name Count -Value $line.count_
+
+                            if ($top -ne 0)
+                            {
+                                if ($otherHeader -match "ResourceId")
+                                {
+                                    $query = 'resources | where toupper(id) == toupper("' + $Identifier + '") | mv-expand tag=tags | project tag' 
+                                    $TagSearch = Search-AzGraph -query $query
+
+                                    foreach ($tag in $tagSearch)
+                                    {
+                                        $tagname = $tag.tag.PSObject.Properties.name
+                                        $tagvalue = $tag.tag.PSObject.Properties.value
+
+                                        $tmp | Add-Member -MemberType NoteProperty -Name $tagname -Value $tagvalue
+                                    }
+                                }
+                               
+                            }
                             $output += $tmp
+
+                            $p2Count += 1
 
                         }
 
@@ -283,11 +349,15 @@ foreach ($sub in $LAWsSub)
                 Catch {
                     write-output "Problem with $query"
                 }
+
+                $pCount += 1
                 
             }
         }
+        $LAWCounter += 1
 
     }
 }
 
-$output | Export-Csv -Path "$outputroot\$outfilename" -NoTypeInformation
+
+$output | Export-Csv -Path "$outreportpath\$outfilename" -NoTypeInformation
