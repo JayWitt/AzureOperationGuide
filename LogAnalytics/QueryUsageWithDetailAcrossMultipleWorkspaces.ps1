@@ -1,5 +1,6 @@
 Import-Module Az.ResourceGraph
 
+$tenantID = "<Azure Active Directory Tenant ID"
 $top = 20  # set to zero to get all records
 $outfilename = "<output file name that will be written in CSV format (example=output.csv)"
 $outdatapath = "<path to where to store output data collected from the subscriptions>"
