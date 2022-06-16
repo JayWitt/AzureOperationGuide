@@ -361,4 +361,7 @@ foreach ($sub in $LAWsSub)
 }
 
 
-$output | Export-Csv -Path "$outreportpath\$outfilename" -NoTypeInformation
+$prop = $output.ForEach{ $_.PSObject.Properties.Name } | Select-Object -Unique
+$out2 = $output | Select-Object $prop -ErrorAction SilentlyContinue
+
+$out2 | Export-Csv -Path "$outreportpath\$outfilename" -NoTypeInformation
