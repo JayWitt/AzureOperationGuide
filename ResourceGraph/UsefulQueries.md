@@ -408,6 +408,23 @@ resources
 | project alertname, alertRG, subscriptionId, eventType, status, ImpactedService, trackingId, todatetime(impactStartTime), todatetime(impactMitigationTime), eventdescription, summary
 ```
 
+## Query the list of active Service Health Alerts
+```kusto
+ServiceHealthResources
+| where type =~ 'Microsoft.ResourceHealth/events'
+| extend eventType = properties.EventType, status = properties.Status, eventdescription = properties.Title, trackingId = properties.TrackingId, summary = properties.Summary, priority = properties.Priority, impactStartTime = todatetime(properties.ImpactStartTime), impactMitigationTime = todatetime(properties.ImpactMitigationTime), SubscriptionId = properties.SubscriptionId, level = properties.Level, HIR = properties.IsHIR
+| mv-expand Impact = properties.Impact
+| extend ImpactedService = tostring(Impact.ImpactedService)
+| where status == "Active"
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions'
+| project SubscriptionName=name,subscriptionId) on subscriptionId
+| where impactMitigationTime > now()
+| where impactStartTime > ago(90d)
+| project eventdescription, SubscriptionName, subscriptionId, trackingId, status, level, eventType, ImpactedService, todatetime(impactStartTime), todatetime(impactMitigationTime)
+| order by SubscriptionName, tostring(trackingId) asc 
+```
+
 ## Query which VMs are using a specific extension.
 NOTE: This example looks for the VM Guest Health agent. You can change out "GuestHealth" in the below query to look for other extension names.
 ```kusto
