@@ -472,3 +472,62 @@ Resources
 | summarize tot=arg_max(Total,Tag1,*) by SubName
 | order by SubName, tot
 ```
+
+
+## Query to report on the details of the AKS clustersin your tenant
+```kusto
+
+resources
+| where type == "microsoft.containerservice/managedclusters"
+| extend skuName = sku.name
+| extend skuSLA = iff(sku.tier=="Paid","SLA (Paid Tier)","CostSavings (Free Tier)")
+| extend networkPlugin = properties.networkProfile.networkPlugin
+| extend networkPolicy = properties.networkProfile.networkPolicy
+| extend powerState = properties.powerState.code
+| extend provisionState = properties.provisioningState
+| extend fqdn = properties.fqdn
+| mv-expand ap = properties.agentPoolProfiles
+| extend APName = ap.name
+| extend APType = ap.type
+| extend APOS = ap.osType
+| extend APPowerState = ap.powerState.code
+| extend APVmSize = ap.vmSize
+| extend APMode = ap.mode
+| extend APVersion = ap.orchestratorVersion
+| extend APNodeVersion = ap.nodeImageVersion
+| extend APAutoScale = ap.enableAutoScaling
+| extend APOSDiskSize = ap.osDiskSizeGB
+| extend APOSDiskType = ap.osDiskType
+| extend APSubnetId = ap.vnetSubnetID
+| extend APMaxPods = ap.maxPods
+| extend APUltraDisk = ap.enableUltraSSD
+| extend APMaxCount = ap.maxCount
+| extend APMinCount = ap.minCount
+| extend APOSSku = ap.osSKU
+| extend NodeRG = properties.nodeResourceGroup
+| extend maxAgentPools = properties.maxAgentPools
+| extend enableRBAC = properties.enableRBAC
+| extend scaledownutilizationthreshold = properties.autoScalerProfile.['scale-down-utilization-threshold']
+| extend scaledowndelayafterfailure = properties.autoScalerProfile.['scale-down-delay-after-failure']
+| extend skipnodeswithlocalstorage = properties.autoScalerProfile.['skip-nodes-with-local-storage']
+| extend scaledowndelayafterdelete = properties.autoScalerProfile.['scale-down-delay-after-delete']
+| extend maxgracefulterminationsec = properties.autoScalerProfile.['max-graceful-termination-sec']
+| extend maxtotalunreadypercentage = properties.autoScalerProfile.['max-total-unready-percentage']
+| extend balancesimilarnodegroups = properties.autoScalerProfile.['balance-similar-node-groups']
+| extend skipnodeswithsystempods = properties.autoScalerProfile.['skip-nodes-with-system-pods']
+| extend scaledowndelayafteradd = properties.autoScalerProfile.['scale-down-delay-after-add']
+| extend scaledownunneededtime = properties.autoScalerProfile.['scale-down-unneeded-time']
+| extend maxnodeprovisiontime = properties.autoScalerProfile.['max-node-provision-time']
+| extend scaledownunreadytime = properties.autoScalerProfile.['scale-down-unready-time']
+| extend newpodscaleupdelay = properties.autoScalerProfile.['new-pod-scale-up-delay']
+| extend oktotalunreadycount = properties.autoScalerProfile.['ok-total-unready-count']
+| extend maxemptybulkdelete = properties.autoScalerProfile.['max-empty-bulk-delete']
+| extend scaninterval = properties.autoScalerProfile.['scan-interval']
+| extend expander = properties.autoScalerProfile.['expander']
+| extend linuxAdmin = properties.linuxProfile.adminUsername
+| extend kubernetesVersion = properties.kubernetesVersion
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| project name, location, resourceGroup, subscriptionId, SubName, skuName, skuSLA, networkPlugin, networkPolicy, provisionState, powerState, fqdn, APName, APType, APOS, APPowerState, APVmSize, APMode, APVersion, APNodeVersion, APAutoScale, APOSDiskSize, APOSDiskType, APSubnetId, APMaxPods, APUltraDisk, APMaxCount, APMinCount, APOSSku, NodeRG, maxAgentPools, enableRBAC, scaledownutilizationthreshold, scaledowndelayafterfailure, skipnodeswithlocalstorage, scaledowndelayafterdelete, maxgracefulterminationsec, maxtotalunreadypercentage, balancesimilarnodegroups, skipnodeswithsystempods, scaledowndelayafteradd, scaledownunneededtime, maxnodeprovisiontime, scaledownunreadytime, newpodscaleupdelay, oktotalunreadycount, maxemptybulkdelete, scaninterval, expander, linuxAdmin, kubernetesVersion
+```
