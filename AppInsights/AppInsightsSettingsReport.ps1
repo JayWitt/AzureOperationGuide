@@ -1,6 +1,7 @@
 $tenantID = "<<tenantID>>"
 $outfilename = "AppInsightDetail.csv"
 
+
 $startTime = get-date
 write-output "Starting @ $startTime"
 
@@ -47,40 +48,65 @@ foreach ($app in $AppSitesList)
 
     $prevsub = $sub
 
-    $webApp = Get-AzWebApp -ResourceGroupName $rg -Name $appName 
+    $err = ""
 
-    $AIKey = ""
-    $AIAgentVersion = ""
-    $AIMode = ""
-    $AIBaseExt = ""
-    $AIPreemptSDK = ""
-    $AIJava = ""
-    $AINodeJS = ""
+    $webApp = Get-AzWebApp -ResourceGroupName $rg -Name $appName -ErrorVariable err -ErrorAction SilentlyContinue
 
+    $startingValue = ""
 
-    foreach ($setting in $($webApp.SiteConfig.AppSettings))
+    if ($err -ne "")
     {
-        if ($setting.Name -eq "APPINSIGHTS_INSTRUMENTATIONKEY") {$AIKey = $setting.Value}
-        if ($setting.Name -eq "ApplicationInsightsAgent_EXTENSION_VERSION") {$AIAgentVersion = $setting.Value}
-        if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_Mode") {$AIMode = $setting.Value}
-        if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_BaseExtensions") {$AIBaseExt = $setting.Value}
-        if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_PreemptSdk") {$AIPreemptSDK = $setting.Value}
-        if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_Java") {$AIJava = $setting.Value}
-        if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_NodeJS") {$AINodeJS = $setting.Value}
-        if ($setting.Name -eq "APPINSIGHTS_PROFILERFEATURE_VERSION") {$AIProfileVer = $setting.Value}
-        if ($setting.Name -eq "DiagnosticServices_EXTENSION_VERSION") {$DiagExtVer = $setting.Value}
-        if ($setting.Name -eq "APPINSIGHTS_SNAPSHOTFEATURE_VERSION") {$AISnapshot = $setting.Value}
-        if ($setting.Name -eq "SnapshotDebugger_EXTENSION_VERSION") {$SnapshotDebug = $setting.Value}
-        if ($setting.Name -eq "InstrumentationEngine_EXTENSION_VERSION") {$InstExtVer = $setting.Value}
-        $setting
-
+        $startingValue = "ERROR"
     }
+
+    $AIKey = $startingValue
+    $AIAgentVersion = $startingValue
+    $AIMode = $startingValue
+    $AIBaseExt = $startingValue
+    $AIPreemptSDK = $startingValue
+    $AIJava = $startingValue
+    $AINodeJS = $startingValue
+    $AIProfileVer = $startingValue
+    $DiagExtVer = $startingValue
+    $AISnapshot = $startingValue
+    $SnapshotDebug = $startingValue
+    $InstExtVer = $startingValue
+    $AIConfigContent = $startingValue
+    $LinuxFXVersion = $startingValue
+    $WindowsFXVersion = $startingValue
+
+    if ($startingValue -eq "") {
+        foreach ($setting in $($webApp.SiteConfig.AppSettings))
+        {
+            if ($setting.Name -eq "APPINSIGHTS_INSTRUMENTATIONKEY") {$AIKey = $setting.Value}
+            if ($setting.Name -eq "ApplicationInsightsAgent_EXTENSION_VERSION") {$AIAgentVersion = $setting.Value}
+            if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_Mode") {$AIMode = $setting.Value}
+            if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_BaseExtensions") {$AIBaseExt = $setting.Value}
+            if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_PreemptSdk") {$AIPreemptSDK = $setting.Value}
+            if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_Java") {$AIJava = $setting.Value}
+            if ($setting.Name -eq "XDT_MicrosoftApplicationInsights_NodeJS") {$AINodeJS = $setting.Value}
+            if ($setting.Name -eq "APPINSIGHTS_PROFILERFEATURE_VERSION") {$AIProfileVer = $setting.Value}
+            if ($setting.Name -eq "DiagnosticServices_EXTENSION_VERSION") {$DiagExtVer = $setting.Value}
+            if ($setting.Name -eq "APPINSIGHTS_SNAPSHOTFEATURE_VERSION") {$AISnapshot = $setting.Value}
+            if ($setting.Name -eq "SnapshotDebugger_EXTENSION_VERSION") {$SnapshotDebug = $setting.Value}
+            if ($setting.Name -eq "InstrumentationEngine_EXTENSION_VERSION") {$InstExtVer = $setting.Value}
+            if ($setting.Name -eq "APPLICATIONINSIGHTS_CONFIGURATION_CONTENT") {$AIConfigContent = $setting.Value}
+
+        }
+
+        $LinuxFXVersion = $WebApp.SiteConfig.LinuxFxVersion
+        $WindowsFXVersion = $WebApp.SiteConfig.WindowsFxVersion
+    }
+
+
 
     $tmp = New-Object -TypeName psobject
     $tmp | Add-Member -MemberType NoteProperty -Name SubID -Value $sub
     $tmp | Add-Member -MemberType NoteProperty -Name ResourceGroup -Value $rg
     $tmp | Add-Member -MemberType NoteProperty -Name WebAppName -Value $appName
     $tmp | Add-Member -MemberType NoteProperty -Name InstrumentationKey -Value $AIKey
+    $tmp | Add-Member -MemberType NoteProperty -Name LinuxFXVersion -Value $LinuxFXVersion
+    $tmp | Add-Member -MemberType NoteProperty -Name WindowsFXVersion -Value $WindowsFXVersion
     $tmp | Add-Member -MemberType NoteProperty -Name AIAgent_Version -Value $AIAgentVersion
     $tmp | Add-Member -MemberType NoteProperty -Name AI_Mode -Value $AIMode
     $tmp | Add-Member -MemberType NoteProperty -Name AIBase_Extensions -Value $AIBaseExt
@@ -92,6 +118,7 @@ foreach ($app in $AppSitesList)
     $tmp | Add-Member -MemberType NoteProperty -Name AISnapshotFeatureVer -Value $AISnapshot
     $tmp | Add-Member -MemberType NoteProperty -Name SnapshotDevugExtVer -Value $SnapshotDebug
     $tmp | Add-Member -MemberType NoteProperty -Name InstEngExtVer -Value $InstExtVer
+    $tmp | Add-Member -MemberType NoteProperty -Name AIConfigContent -Value $AIConfigContent
     $output += $tmp
 
 }
