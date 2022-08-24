@@ -4,16 +4,16 @@
 
 The Application Gateway has many different components that are referenced in the graphic below. The graphic is meant to show how each of the items work together to make the Application Gateway v2 service work.
 
-![App Gateway Explained](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/AppGWExplained.png)
+![App Gateway Explained](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/AppGWExplained.png)
 
 
 ## Common Problems:
 
 * Root Certificate doesn’t match
    * If your backend health reports that the Root Certificate doesn't match, you should start with confirming that the Certificate (.cer file) used in the HTTP Setting is indeed the root certificate used on the backend pool by doing the following steps.
-      1. Use the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#certificate-requirements) steps to determine the root certificate that is on the backend.
-          1. If the whole chain is not listed (as in no errors on any of the certs in the chain) then there is a problem with how the certificate is being presented on the backend side. Check the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#certificate-requirements) section for more information on how to handle it for the different platforms listed (i.e. Nginx).
-      1. Use the [Listed Trusted Root Certificates](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md#listed-trusted-root-certificates) script to confirm that the certificate is indeed the root of the chain used from step 1. **NOTE: You cannot use an intermediate certificate as the root. It must be the certificate that is signed by itself (i.e. a root certificate).**
+      1. Use the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Troubleshooting.md#certificate-requirements) steps to determine the root certificate that is on the backend.
+          1. If the whole chain is not listed (as in no errors on any of the certs in the chain) then there is a problem with how the certificate is being presented on the backend side. Check the [Certificate requirements](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Troubleshooting.md#certificate-requirements) section for more information on how to handle it for the different platforms listed (i.e. Nginx).
+      1. Use the [Listed Trusted Root Certificates](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Troubleshooting.md#listed-trusted-root-certificates) script to confirm that the certificate is indeed the root of the chain used from step 1. **NOTE: You cannot use an intermediate certificate as the root. It must be the certificate that is signed by itself (i.e. a root certificate).**
       1. If the root certificate from step 1 doesn't match the root certificate in step 2, then navigate to the site represented on the backend pool and export the root certificate. (For App GW v2 use [Export trusted root certificate (for v2 SKU)](https://docs.microsoft.com/en-us/azure/application-gateway/certificates-for-backend-authentication#export-trusted-root-certificate-for-v2-sku)). Add that exported certificate to the HTTP setting using [Add authentication/root certificates of back-end servers](https://docs.microsoft.com/en-us/azure/application-gateway/end-to-end-ssl-portal#add-authenticationroot-certificates-of-back-end-servers)
 
 * Rewrite Rule doesn’t work
@@ -28,7 +28,7 @@ The Application Gateway has many different components that are referenced in the
         * The "Default rewrite setting" is meant to capture anything else that is not already represented by the other path based rules.
         * As an example, if there was a rewrite rule that would add in an additional header, this is how the logic would work using the following configuration:
 
-        ![Routing Rules](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/routingrules.png)
+        ![Routing Rules](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/routingrules.png)
         |What is selected|What will happen if I go to test.mydemocloud.net/default.asp|What will happen if I go to test.mydemocloud.net/vars.asp|What will happen if I go to test.mydemocloud.net/info.asp|
         |----------------|-----------------|-----|----|
         | test.mydemocloud.net Path-based rule (Default rewrite setting) is the only thing selected| Yes. The rewrite rule will apply the header since this page is not accounted for in one of the routing rules.| No. The rewrite rule would **not** apply the headers because there is a path based rule that accounts for the /vars.asp page and it is not selected.| No. The rewrite rule would **not** apply the headers because there is a path based rule that accounts for the /info.asp page and it is not selected.|
@@ -53,7 +53,7 @@ openssl s_client -showcerts -connect <url>:443
 
 The output of the command should have the following parts:
 
-![Cert Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/AppGwCertExample.png)
+![Cert Output](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/AppGwCertExample.png)
 
 The following are additional notes depending on the system that is running on the backend pool.
 
@@ -121,7 +121,7 @@ foreach ($Listener in $ListenerCert)
 ```
 Sample Output:
 
-![Sample Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/SampleOutput.png)
+![Sample Output](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/SampleOutput.png)
 
 ### Remove Trusted Root Certificate
 Use this script to remove a trusted root certificate from the App Gateway.

@@ -1,8 +1,8 @@
 # Application Gateways
 
-* [Application Gateway Troubleshooting Guide](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Troubleshooting.md)
-* [Useful Curl Commands](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/UsefulCurl.md)
-* [Application Gateway Governance](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Governance.md)
+* [Application Gateway Troubleshooting Guide](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Troubleshooting.md)
+* [Useful Curl Commands](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/UsefulCurl.md)
+* [Application Gateway Governance](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Governance.md)
 
 ## Application Gateway Performance
 
