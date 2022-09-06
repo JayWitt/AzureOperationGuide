@@ -91,6 +91,14 @@ resources
  | where type == "microsoft.network/networkinterfaces" 
  | where properties.ipConfigurations[0].properties.publicIPAddress == "x.x.x.x"
 ```
+## List the network cards that have a specific Public IP Address (More Advanced)
+**Note: Substitute the x.x.x.x with the IP address you are looking for**
+```Kusto
+resources
+| where type == "microsoft.network/publicipaddresses"
+| extend pIP = properties.ipAddress
+| where pIP == "x.x.x.x"
+```
 ## Look for the service that is using a public IP address
 **Note: Substitute the x.x.x.x with the IP address you are looking for**
 ```Kusto
