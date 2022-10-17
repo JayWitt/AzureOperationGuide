@@ -539,3 +539,17 @@ resources
 | project SubName=name, subscriptionId) on subscriptionId
 | project name, location, resourceGroup, subscriptionId, SubName, skuName, skuSLA, networkPlugin, networkPolicy, provisionState, powerState, fqdn, APName, APType, APOS, APPowerState, APVmSize, APMode, APVersion, APNodeVersion, APAutoScale, APOSDiskSize, APOSDiskType, APSubnetId, APMaxPods, APUltraDisk, APMaxCount, APMinCount, APOSSku, NodeRG, maxAgentPools, enableRBAC, scaledownutilizationthreshold, scaledowndelayafterfailure, skipnodeswithlocalstorage, scaledowndelayafterdelete, maxgracefulterminationsec, maxtotalunreadypercentage, balancesimilarnodegroups, skipnodeswithsystempods, scaledowndelayafteradd, scaledownunneededtime, maxnodeprovisiontime, scaledownunreadytime, newpodscaleupdelay, oktotalunreadycount, maxemptybulkdelete, scaninterval, expander, linuxAdmin, kubernetesVersion
 ```
+
+## Query which reports on the node types in all of the HDI Clusters
+```kusto
+resources
+| where type == "microsoft.hdinsight/clusters"
+| mv-expand roles = properties.computeProfile.roles
+| extend rName = roles.name
+| extend rSKU = roles.hardwareProfile.vmSize
+| extend rInstanceCount = roles.targetInstanceCount
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| project name, location, resourceGroup, SubName, subscriptionId, rName, rSKU, rInstanceCount
+```
