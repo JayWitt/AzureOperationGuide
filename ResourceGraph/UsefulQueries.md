@@ -539,7 +539,6 @@ resources
 | project SubName=name, subscriptionId) on subscriptionId
 | project name, location, resourceGroup, subscriptionId, SubName, skuName, skuSLA, networkPlugin, networkPolicy, provisionState, powerState, fqdn, APName, APType, APOS, APPowerState, APVmSize, APMode, APVersion, APNodeVersion, APAutoScale, APOSDiskSize, APOSDiskType, APSubnetId, APMaxPods, APUltraDisk, APMaxCount, APMinCount, APOSSku, NodeRG, maxAgentPools, enableRBAC, scaledownutilizationthreshold, scaledowndelayafterfailure, skipnodeswithlocalstorage, scaledowndelayafterdelete, maxgracefulterminationsec, maxtotalunreadypercentage, balancesimilarnodegroups, skipnodeswithsystempods, scaledowndelayafteradd, scaledownunneededtime, maxnodeprovisiontime, scaledownunreadytime, newpodscaleupdelay, oktotalunreadycount, maxemptybulkdelete, scaninterval, expander, linuxAdmin, kubernetesVersion
 ```
-
 ## Query which reports on the node types in all of the HDI Clusters
 ```kusto
 resources
@@ -553,3 +552,32 @@ resources
 | project SubName=name, subscriptionId) on subscriptionId
 | project name, location, resourceGroup, SubName, subscriptionId, rName, rSKU, rInstanceCount
 ```
+## Analyze the configuration of Azure VNET Gateways
+```kusto
+resources
+| where type == "microsoft.network/virtualnetworkgateways"
+| extend GWSKU = properties.sku.name
+| extend GWCapacity = properties.sku.capacity
+| extend GWTier = properties.sku.tier
+| mv-expand GWtmp = properties.ipConfigurations
+| extend GWPip = tostring(GWtmp.properties.publicIPAddress.id)
+| join kind=leftouter (resources
+| project PIPSku = (sku.name), PIPTier = (sku.tier), PIPZones = (zones), GWPip = tostring(id)) on GWPip
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| project name, SubName, resourceGroup, location, GWSKU, GWCapacity, GWTier, PIPSku, PIPTier, PIPZones
+```
+## Produce VM List of all VMs in a set of subscriptions (including baremetal HLI systems)
+NOTE: Replace "<< subid >>" with the subscription IDs that you want to look for. If you just want to look for one, you can make it a single value
+```kusto
+resources
+| where type == "microsoft.hanaonazure/hanainstances" or type == "microsoft.baremetalinfrastructure/baremetalinstances" or type == "microsoft.compute/virtualmachines"
+| where subscriptionId in ("<< subid >>","<< subid >>","<< subid >>")
+| extend SKU = case(properties.hardwareProfile.azureBareMetalInstanceSize <> "",properties.hardwareProfile.azureBareMetalInstanceSize,properties.hardwareProfile.hanaInstanceSize <> "",properties.hardwareProfile.hanaInstanceSize,properties.hardwareProfile.vmSize)
+| extend OS = iif(properties.osProfile.osType=="",iif(properties.extended.instanceView.osName=="",strcat(properties.storageProfile.imageReference.publisher,"-",properties.storageProfile.imageReference.sku),strcat(properties.extended.instanceView.osName,"-",properties.extended.instanceView.osVersion)),properties.osProfile.osType)
+| extend state = iif(properties.extended.instanceView.powerState.displayStatus=="",tostring(properties.powerState),properties.extended.instanceView.powerState.displayStatus)
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions'
+| project SubscriptionName=name,subscriptionId) on subscriptionId
+| project SubscriptionName, resourceGroup, name, SKU, OS, state, location
