@@ -569,7 +569,7 @@ resources
 | project name, SubName, resourceGroup, location, GWSKU, GWCapacity, GWTier, PIPSku, PIPTier, PIPZones
 ```
 ## Produce VM List of all VMs in a set of subscriptions (including baremetal HLI systems)
-NOTE: Replace "<< subid >>" with the subscription IDs that you want to look for. If you just want to look for one, you can make it a single value
+NOTE: Replace "<< subid >>" with the subscription IDs that you want to look for. If you just want to look for one, you can make it a single value. Also note that the operating system information is coming from the resource provider which may not properly match that which is running on the server.
 ```kusto
 resources
 | where type == "microsoft.hanaonazure/hanainstances" or type == "microsoft.baremetalinfrastructure/baremetalinstances" or type == "microsoft.compute/virtualmachines"
