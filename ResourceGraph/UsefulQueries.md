@@ -581,3 +581,34 @@ resources
 | where type=='microsoft.resources/subscriptions'
 | project SubscriptionName=name,subscriptionId) on subscriptionId
 | project SubscriptionName, resourceGroup, name, SKU, OS, state, location
+
+## Report on VNET configurations at scale
+```kusto
+resources
+| where type == "microsoft.network/virtualnetworks"
+| extend addressSpace = properties.addressSpace.addressPrefixes
+| mv-expand subn = properties.subnets
+| extend subnName = subn.name
+| extend PrivateLinkServiceNetworkPolicies = subn.properties.privateLinkServiceNetworkPolicies
+| extend PrivateEndpointNetworkPolicies = subn.properties.privateEndpointNetworkPolicies
+| extend addressPrefix = subn.properties.addressPrefix
+| extend servEchk = iif(subn.properties.serviceEndpoints=="[]",todynamic("None"),subn.properties.serviceEndpoints)
+| mv-expand servE = servEchk
+| extend serviceEndpoints = servE.service
+| extend deleg = subn.properties.delegations[0].properties.serviceName
+| extend deleg1 = subn.properties.delegations[1].properties.serviceName
+| extend deleg2 = subn.properties.delegations[2].properties.serviceName
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| extend SubnRTId = tostring(subn.properties.routeTable.id)
+| join kind=leftouter (resources
+| extend RTName = name
+| mv-expand RT = properties.routes
+| extend RTrName = RT.name
+| extend RTPrefix = RT.properties.addressPrefix
+| extend RTBGPOverride = RT.properties.hasBgpOverride
+| extend RTNextHop = RT.properties.nextHopType
+| project RTName, RTrName, RTPrefix, RTBGPOverride, RTNextHop, SubnRTId = (tostring(id))) on SubnRTId
+| project name, location, SubName, resourceGroup, addressSpace, subnName, PrivateLinkServiceNetworkPolicies, PrivateEndpointNetworkPolicies, addressPrefix, serviceEndpoints, deleg, deleg1, deleg2, RTName, RTrName, RTPrefix, RTBGPOverride, RTNextHop 
+```
