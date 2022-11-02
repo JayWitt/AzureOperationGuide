@@ -581,6 +581,7 @@ resources
 | where type=='microsoft.resources/subscriptions'
 | project SubscriptionName=name,subscriptionId) on subscriptionId
 | project SubscriptionName, resourceGroup, name, SKU, OS, state, location
+```
 
 ## Report on VNET configurations at scale
 ```kusto
