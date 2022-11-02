@@ -584,6 +584,7 @@ resources
 ```
 
 ## Report on VNET configurations at scale
+NOTE: This will produce a report that will have multiple entries for VNETs and Subnets depending on the number of service endpoints, and UDR Routes.
 ```kusto
 resources
 | where type == "microsoft.network/virtualnetworks"
@@ -612,4 +613,80 @@ resources
 | extend RTNextHop = RT.properties.nextHopType
 | project RTName, RTrName, RTPrefix, RTBGPOverride, RTNextHop, SubnRTId = (tostring(id))) on SubnRTId
 | project name, location, SubName, resourceGroup, addressSpace, subnName, PrivateLinkServiceNetworkPolicies, PrivateEndpointNetworkPolicies, addressPrefix, serviceEndpoints, deleg, deleg1, deleg2, RTName, RTrName, RTPrefix, RTBGPOverride, RTNextHop 
+```
+
+## Report on Load Balancer Configuration at scale
+```kusto
+resources
+| where type == "microsoft.network/loadbalancers"
+| extend LbSku = sku.name
+| extend LbTier = sku.tier
+| mv-expand Lbr = properties.loadBalancingRules
+| extend LbRuleName = Lbr.name
+| extend LbRuleProtocol = Lbr.properties.protocol
+| extend LbRuleIdleTimeout = Lbr.properties.idleTimeoutInMinutes
+| extend lbRuleFloatingIp = Lbr.properties.enableFloatingIP
+| extend lbRuleEnableTCPReset = Lbr.properties.enableTcpReset
+| extend lbRuleFrontEndPort = Lbr.properties.frontendPort
+| extend lbRuleHAPorts = iff((Lbr.properties.protocol=="All") and (Lbr.properties.frontendPort=="0"),"yes","no")
+| extend lbdisableOutboundSnat = Lbr.properties.disableOutboundSnat
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions'
+| project SubscriptionName=name,subscriptionId) on subscriptionId
+| project name, SubscriptionName, resourceGroup, zones, LbSku, LbTier, LbRuleName, LbRuleProtocol, LbRuleIdleTimeout, lbRuleFloatingIp, lbRuleEnableTCPReset, lbRuleFrontEndPort, lbRuleHAPorts, lbdisableOutboundSnat
+```
+
+## Report on VM Configuration at scale
+```kusto
+resources
+| where type == "microsoft.compute/virtualmachines" or type == "microsoft.baremetalinfrastructure/baremetalinstances"
+| extend VMSize = iif(isempty(properties.hardwareProfile.vmSize),properties.hardwareProfile.azureBareMetalInstanceSize,properties.hardwareProfile.vmSize)
+| extend ComputerName = properties.extended.instanceView.computerName
+| extend OSName = properties.extended.instanceView.osName
+| extend OSVersion = properties.extended.instanceView.osVersion
+| extend ImgOSPublisher = properties.storageProfile.imageReference.publisher
+| extend ImgOSOffer = properties.storageProfile.imageReference.offer
+| extend ImgOSSKU = properties.storageProfile.imageReference.sku
+| extend AvailSet = properties.availabilitySet.id
+| extend PPG = properties.proximityPlacementGroup
+| extend OSDiskName = properties.storageProfile.osDisk.name
+| extend OSDiskId = tolower(tostring(properties.storageProfile.osDisk.managedDisk.id))
+| join kind=leftouter (resources
+| extend oSku = sku.name
+| extend oSize = properties.diskSizeGB
+| extend oIOPS = properties.diskIOPSReadWrite
+| extend oMbps = properties.diskMBpsReadWrite
+| extend oState = properties.diskState
+| extend oTier = properties.tier
+| extend OSDiskId = tolower(tostring(id))) on OSDiskId
+| mv-expand dd = iff(tostring(properties.storageProfile.dataDisks)=="[]",parse_json('[0]'),properties.storageProfile.dataDisks)
+| extend DataDiskName = dd.name
+| extend DataDiskID = tolower(tostring(dd.managedDisk.id))
+| extend DataDiskSize = dd.diskSizeGB
+| extend DataDiskCache = dd.caching
+| extend DataDiskLun = tostring(dd.lun)
+| join kind=leftouter (resources
+| extend dSku = sku.name
+| extend dSize = properties.diskSizeGB
+| extend dIOPS = properties.diskIOPSReadWrite
+| extend dMbps = properties.diskMBpsReadWrite
+| extend dState = properties.diskState
+| extend dTier = properties.tier
+| extend DataDiskID = tolower(tostring(id))) on DataDiskID
+| extend cc = iff(isempty(properties.osProfile.linuxConfiguration),properties.osProfile.windowsConfiguration,properties.osProfile.linuxConfiguration)
+| extend VMAgent = cc.provisionVMAgent
+| extend PatchMode = cc.patchSettings.patchMode
+| where ImgOSPublisher != "dellemc"
+| extend VMName = name
+| mv-expand nic = properties.networkProfile.networkInterfaces
+| extend nicID = tostring(nic.id)
+| join kind=leftouter (resources
+| mv-expand ip = properties.ipConfigurations
+| extend privateIP = ip.properties.privateIPAddress
+| extend nicID = tostring(id)
+| project nicID, privateIP) on nicID
+| extend ipAddr = iff(isempty(nic.ipAddress),privateIP,nic.ipAddress)
+| extend VMStatus = properties.extended.instanceView.powerState.displayStatus
+| project VMName, ComputerName, location, resourceGroup, subscriptionId, VMSize, VMStatus, ipAddr, OSName, OSVersion, ImgOSPublisher, ImgOSOffer, ImgOSSKU, AvailSet, PPG, OSDiskName, oSize, oSku, oIOPS, oMbps, DataDiskName, dSize, dSku, dIOPS, dMbps, DataDiskCache, DataDiskLun, VMAgent, PatchMode
+| order by VMName, DataDiskLun asc
 ```
