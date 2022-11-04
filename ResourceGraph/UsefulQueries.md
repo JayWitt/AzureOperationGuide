@@ -597,9 +597,9 @@ resources
 | extend servEchk = iif(subn.properties.serviceEndpoints=="[]",todynamic("None"),subn.properties.serviceEndpoints)
 | mv-expand servE = servEchk
 | extend serviceEndpoints = servE.service
-| extend deleg = subn.properties.delegations[0].properties.serviceName
-| extend deleg1 = subn.properties.delegations[1].properties.serviceName
-| extend deleg2 = subn.properties.delegations[2].properties.serviceName
+| extend Delegchk = iif(subn.properties.delegations=="[]",todynamic("None"),subn.properties.delegations)
+| mv-expand deleg = Delegchk
+| extend delegService = deleg.properties.serviceName
 | join kind=leftouter (ResourceContainers 
 | where type=='microsoft.resources/subscriptions' 
 | project SubName=name, subscriptionId) on subscriptionId
@@ -612,7 +612,7 @@ resources
 | extend RTBGPOverride = RT.properties.hasBgpOverride
 | extend RTNextHop = RT.properties.nextHopType
 | project RTName, RTrName, RTPrefix, RTBGPOverride, RTNextHop, SubnRTId = (tostring(id))) on SubnRTId
-| project name, location, SubName, resourceGroup, addressSpace, subnName, PrivateLinkServiceNetworkPolicies, PrivateEndpointNetworkPolicies, addressPrefix, serviceEndpoints, deleg, deleg1, deleg2, RTName, RTrName, RTPrefix, RTBGPOverride, RTNextHop 
+| project name, location, SubName, resourceGroup, addressSpace, subnName, PrivateLinkServiceNetworkPolicies, PrivateEndpointNetworkPolicies, addressPrefix, serviceEndpoints, delegService, RTName, RTrName, RTPrefix, RTBGPOverride, RTNextHop 
 ```
 
 ## Report on Load Balancer Configuration at scale
