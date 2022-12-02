@@ -690,3 +690,17 @@ resources
 | project VMName, ComputerName, location, resourceGroup, subscriptionId, VMSize, VMStatus, ipAddr, OSName, OSVersion, ImgOSPublisher, ImgOSOffer, ImgOSSKU, AvailSet, PPG, OSDiskName, oSize, oSku, oIOPS, oMbps, DataDiskName, dSize, dSku, dIOPS, dMbps, DataDiskCache, DataDiskLun, VMAgent, PatchMode
 | order by VMName, DataDiskLun asc
 ```
+
+## Report on NetApp Volume Configuration at scale
+```kusto
+resources
+| where toupper(type) == toupper("microsoft.NetApp/netAppAccounts/capacityPools/Volumes")
+| extend subnetId = properties.subnetId
+| extend NetAppAccount = split(name,"/")[0]
+| extend NetAppAccountPool = split(name,"/")[1]
+| extend NetAppAccountVol = split(name,"/")[2]
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| project NetAppAccount, NetAppAccountPool, NetAppAccountVol, SubName, subscriptionId, NetAppVolURI = id, subnetId
+```
