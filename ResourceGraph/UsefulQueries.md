@@ -704,3 +704,16 @@ resources
 | project SubName=name, subscriptionId) on subscriptionId
 | project NetAppAccount, NetAppAccountPool, NetAppAccountVol, SubName, subscriptionId, NetAppVolURI = id, subnetId
 ```
+
+## Report on Log Analytics Workspaces daily cap settings
+```kusto
+resources
+| where type == "microsoft.operationalinsights/workspaces"
+| extend DataIngestionStatus = properties.workspaceCapping.dataIngestionStatus
+| extend quotaNextResetTime = properties.workspaceCapping.quotaNextResetTime
+| extend dailyQuotaGB = properties.workspaceCapping.dailyQuotaGb
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| project name, SubName, resourceGroup, DataIngestionStatus, quotaNextResetTime, dailyQuotaGB
+```
