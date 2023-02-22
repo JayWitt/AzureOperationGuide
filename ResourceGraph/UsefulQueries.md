@@ -717,3 +717,49 @@ resources
 | project SubName=name, subscriptionId) on subscriptionId
 | project name, SubName, resourceGroup, DataIngestionStatus, quotaNextResetTime, dailyQuotaGB
 ```
+
+## Report on ASR Configuraiton at scale
+NOTE: There will be multiple lines per VM and disk because of the health of the VM. Parse the output with care. More information will be shared on how to best review the output of this query.
+```kusto
+RecoveryServicesResources
+| where type == "microsoft.recoveryservices/vaults/replicationfabrics/replicationprotectioncontainers/replicationprotecteditems"
+| extend policyName = properties.policyName
+| extend protectionState = properties.protectionState
+| extend currentProtectionState = properties.currentProtectionState
+| extend protectionStateDescription = properties.protectionStateDescription
+| extend recoveryAvailabilityZone = properties.providerSpecificDetails.recoveryAvailabilityZone
+| extend primaryAvailabilityZone = properties.providerSpecificDetails.primaryAvailabilityZone
+| extend lastRpoCalculatedTime = properties.providerSpecificDetails.lastRpoCalculatedTime
+| extend datasourceType = properties.providerSpecificDetails.dataSourceInfo.datasourceType
+| extend resourceLocation = properties.providerSpecificDetails.dataSourceInfo.resourceLocation
+| extend resourceId = properties.providerSpecificDetails.dataSourceInfo.resourceId
+| extend policyIda = tostring(properties.policyId)
+| extend recoveryAzureVMSize = properties.providerSpecificDetails.recoveryAzureVMSize
+| extend recoveryAzureVMName = tostring(properties.providerSpecificDetails.recoveryAzureVMName)
+| extend failoverHealth = properties.failoverHealth
+| mv-expand health = properties.healthErrors
+| extend recommendedAction = health.recommendedAction
+| extend possibleCauses = health.possibleCauses
+| extend recoveryAzureVMtmp = split(resourceId, "/")
+| extend recoveryAzureVMSub = tostring(recoveryAzureVMtmp[2])
+| extend recoveryAzureVMRG = recoveryAzureVMtmp[4]
+| mv-expand disks = properties.providerSpecificDetails.protectedManagedDisks
+| extend diskName = disks.diskName
+| extend diskState = disks.diskState
+| extend diskId = disks.diskId
+| extend recoveryTargetDiskAccountType = disks.recoveryTargetDiskAccountType
+| extend instanceType = properties.instanceType
+| join kind=leftouter (RecoveryServicesResources
+| where type == "microsoft.recoveryservices/vaults/replicationpolicies"
+| extend crashConsistentFrequencyInMinutes = properties.providerSpecificDetails.crashConsistentFrequencyInMinutes
+| extend appConsistentFrequencyInMinutes = properties.providerSpecificDetails.appConsistentFrequencyInMinutes
+| extend recoveryPointThresholdInMinutes = properties.providerSpecificDetails.recoveryPointThresholdInMinutes
+| extend recoveryPointHistory = properties.providerSpecificDetails.recoveryPointHistory
+| extend multiVmSyncStatus = properties.providerSpecificDetails.multiVmSyncStatus
+| project policyIda=tostring(id), crashConsistentFrequencyInMinutes, appConsistentFrequencyInMinutes, recoveryPointThresholdInMinutes, recoveryPointHistory, multiVmSyncStatus) on policyIda
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, recoveryAzureVMSub=tostring(subscriptionId)) on recoveryAzureVMSub
+| project recoveryAzureVMName, resourceLocation, SubName, recoveryAzureVMRG, policyName, protectionState, currentProtectionState, protectionStateDescription, recoveryAvailabilityZone, primaryAvailabilityZone, lastRpoCalculatedTime, failoverHealth, recommendedAction, possibleCauses, datasourceType, recoveryAzureVMSize, diskName, diskState, recoveryTargetDiskAccountType, crashConsistentFrequencyInMinutes, appConsistentFrequencyInMinutes, recoveryPointThresholdInMinutes, recoveryPointHistory, multiVmSyncStatus
+| order by recoveryAzureVMName asc
+```
