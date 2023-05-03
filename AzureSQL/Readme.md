@@ -6,7 +6,7 @@ This page is devoted to storing general notes about Azure SQL.
 ## Quick Add SQL Firewall Script
 You can use this script to quickly add a set of IP addresses to a SQL.
 
-[SetSQLFirewallRule.ps1](https://github.com/JayWitt/AzureOperationGuide/raw/main/SetSQLFirewallrule.ps1)
+[SetSQLFirewallRule.ps1](https://github.com/JayWitt/AzureOperationGuide/master/AzureSQL/SetSQLFirewallrule.ps1)
 
 ### How to use:
 1. Download the script
@@ -18,8 +18,8 @@ You can use this script to quickly add a set of IP addresses to a SQL.
    1. **What are the IP ranges** This is where you can just copy the string of IP addresses posted on many of the web sites (Referenced below).
 1. After you run the script, it will create firewall rules on your SQL server based upon the given IP addresses.
 
-![IP Address Example](https://github.com/JayWitt/AzureOperationGuide/raw/main/AzureSQL/ipaddrs.png)
+![IP Address Example](https://github.com/JayWitt/AzureOperationGuide/raw/master/AzureSQL/ipaddrs.png)
 
-![Script Output](https://github.com/JayWitt/AzureOperationGuide/raw/main/AzureSQL/SQLFirewallIPs.png)
+![Script Output](https://github.com/JayWitt/AzureOperationGuide/raw/master/AzureSQL/SQLFirewallIPs.png)
 
-[Link to Azure IP Addresses](https://github.com/JayWitt/AzureOperationGuide/blob/main/Network/IPAddressReference.md)
+[Link to Azure IP Addresses](https://github.com/JayWitt/AzureOperationGuide/blob/master/Network/IPAddressReference.md)

@@ -364,7 +364,7 @@ resources
 ```
 
 ## Query to evaluate the number of IP addresses needed for App Gateways against the number of IPs assigned within the VNet
-This query is best used to export the data out into an CSV for analysis in Excel where you can setup conditional formatting on the SubnetID column to identify subnets that are sharing applicaiton gateways. More information can be found [here](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Governance.md#Analyze-the-size-of-the-subnets-that-house-your-Application-Gateways) in the troubleshooting section of App Gateways.
+This query is best used to export the data out into an CSV for analysis in Excel where you can setup conditional formatting on the SubnetID column to identify subnets that are sharing applicaiton gateways. More information can be found [here](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Governance.md#Analyze-the-size-of-the-subnets-that-house-your-Application-Gateways) in the troubleshooting section of App Gateways.
 ```kusto
 resources
 | where type == "microsoft.network/applicationgateways"

@@ -4,8 +4,8 @@ In order to quickly assess your Applicaiton Gateway infastructure, you can use R
 
 There are a few processes described on this page:
 
-1. [Analyze settings of all Application Gateways in your environment](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Governance.md#Analyze-settings-of-all-Application-Gateways-in-your-environment)
-2. [Analyze the size of the subnets that house your Applicaation Gateways](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/Governance.md#Analyze-the-size-of-the-subnets-that-house-your-Application-Gateways)
+1. [Analyze settings of all Application Gateways in your environment](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Governance.md#Analyze-settings-of-all-Application-Gateways-in-your-environment)
+2. [Analyze the size of the subnets that house your Applicaation Gateways](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/Governance.md#Analyze-the-size-of-the-subnets-that-house-your-Application-Gateways)
 
 
 
@@ -21,14 +21,14 @@ resources
 ```
 2. Download the results into a CSV file.
 
-![Download As CSV](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/DownloadAsCSV.png)
+![Download As CSV](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/DownloadAsCSV.png)
 
 3. Edit the CSV file that is downloaded and delete the following line
 ```CSV
 SEP=,
 ```
 
-4. Download the [AppGWResourceGraphParser.ps1](https://github.com/JayWitt/AzureOperationGuide/blob/main/AppGateway/AppGWResourceGraphParser.ps1) script.
+4. Download the [AppGWResourceGraphParser.ps1](https://github.com/JayWitt/AzureOperationGuide/blob/master/AppGateway/AppGWResourceGraphParser.ps1) script.
 
 5. Modify the $ResourceGraphOutputPath with the path of the location where you downloaded the CSV file from in step 2.
 ```Powershell
@@ -82,33 +82,33 @@ This isn't really a script but rather a Resource Graph query that you can then e
 
 For more sizing information on subnets used by Application Gateways, please look [here](https://docs.microsoft.com/en-us/azure/application-gateway/configuration-infrastructure#size-of-the-subnet)
 
-1. Navigate the Resource Explorer and run the query outlined [here](https://github.com/JayWitt/AzureOperationGuide/blob/main/ResourceGraph/UsefulQueries.md#Query-to-evaluate-the-number-of-IP-addresses-needed-for-App-Gateways-against-the-number-of-IPs-assigned-within-the-VNet).
+1. Navigate the Resource Explorer and run the query outlined [here](https://github.com/JayWitt/AzureOperationGuide/blob/master/ResourceGraph/UsefulQueries.md#Query-to-evaluate-the-number-of-IP-addresses-needed-for-App-Gateways-against-the-number-of-IPs-assigned-within-the-VNet).
 2. Export the results into a CSV.
 
-![Download As CSV](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/DownloadAsCSV.png)
+![Download As CSV](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/DownloadAsCSV.png)
 
 3. Open the CSV file with Excel.
 
 4. Highlight the first row and click Sort & Filter > Filter.
 
-![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/ExcelFilter.png)
+![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/ExcelFilter.png)
 
 5. Highlight column H and click Conditional Formatting > Highlight Cells Rules > Duplicate Values.
 
-![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/ConditionalFormatting.png)
+![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/ConditionalFormatting.png)
 
 6. Click Ok at the next screen.
 
-![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/DuplicateValues.png)
+![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/DuplicateValues.png)
 
 7. Click the SUBNETID column filter and Sort by Color > then choose the pink color.
 
-![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/ExcelSort.png)
+![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/ExcelSort.png)
 
 8. Review the SUBNETIPCOUNT column against the number of MAXIPSNEEDED column to confirm that you will have enough IP addresses in the subnet in the event of the App Gateway scaling to its maximum.
 
 As an example, the following two rows represent two App Gateways that are in the same subnet. Since the subnet has a CIDR range of 10.0.0.0/27, this means that there is 27 IP addresses available in that subnet to be used (32 total addresses for /27 minus 5 for Azure). Ths SUBNETIPCOUNT column already has done the calculation for you. The maximum number of IPs that the gateways in that subnet could use would be 20 (10+10). This means that the subnet has enough IP addresses if both Application Gateways were to scale out to their maximum instance counts.
 
-![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/main/AppGateway/ReadReport.png)
+![Duplicate Values](https://github.com/JayWitt/AzureOperationGuide/raw/master/AppGateway/ReadReport.png)
 
 
