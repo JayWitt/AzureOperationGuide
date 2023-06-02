@@ -33,8 +33,9 @@ foreach ($df in $results)
 
     if ($dfSub -ne $prevSubID) 
     {
-        set-azcontext -Subscription $dfSub -WarningAction SilentlyContinue
+        $tmp = set-azcontext -Subscription $dfSub -WarningAction SilentlyContinue
         $prevSubID = $dfSub
+        write-host -ForegroundColor Cyan "Searching subscription [$($tmp.Name)]"
     }
 
     $dfIR = Get-AzDataFactoryV2IntegrationRuntime -ResourceGroupName $dfRG -DataFactoryName $dfName
@@ -47,14 +48,15 @@ foreach ($df in $results)
         $IRtype = $IRobj.Type
         $IRVersion = $IRobj.Version
         $IRLatestVersion = $IRObj.LatestVersion
-        $IRDelta = ""
+        $IRAutoUpdate = $IRobj.AutoUpdate
+        $IRVersionStatus = $IRobj.VersionStatus
+        $IRState = $IRobj.State
 
         if ($IRType -eq "SelfHosted") 
         {
-            if ($IRVersion -ne $IRLatestVersion)
+            if ($IRVersionStatus -ne "UpToDate")
             {
-                write-host -ForegroundColor Red "[SHIR] $($IR.Name) [$IRVersion] NEED TO UPGRADE TO $IRLatestVersion!"
-                $IRDelta = "Need to upgrade"
+                write-host -ForegroundColor Red "[SHIR] $($IR.Name) [$IRVersion] Needs attention!"
             } else
             {
                 write-host -ForegroundColor Green "[SHIR] $($IR.Name) [$IRVersion]"
@@ -72,8 +74,10 @@ foreach ($df in $results)
         $obj | Add-Member -MemberType NoteProperty -Name RuntimeName -Value $IR.Name
         $obj | Add-Member -MemberType NoteProperty -Name RuntimeType -Value $IRType
         $obj | Add-Member -MemberType NoteProperty -Name RuntimeVersion -Value $IRVersion
+        $obj | Add-Member -MemberType NoteProperty -Name RuntimeVersionStatus -Value $IRVersionStatus
         $obj | Add-Member -MemberType NoteProperty -Name RuntimeLatest -Value $IRLatestVersion
-        $obj | Add-Member -MemberType NoteProperty -Name RuntimeDelta -Value $IRDelta
+        $obj | Add-Member -MemberType NoteProperty -Name RuntimeAutoUpdate -Value $IRAutoUpdate
+        $obj | Add-Member -MemberType NoteProperty -Name RuntimeState -Value $IRState
 
 
         $output += $obj
