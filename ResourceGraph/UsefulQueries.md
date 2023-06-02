@@ -763,3 +763,19 @@ RecoveryServicesResources
 | project recoveryAzureVMName, resourceLocation, SubName, recoveryAzureVMRG, policyName, protectionState, currentProtectionState, protectionStateDescription, recoveryAvailabilityZone, primaryAvailabilityZone, lastRpoCalculatedTime, failoverHealth, recommendedAction, possibleCauses, datasourceType, recoveryAzureVMSize, diskName, diskState, recoveryTargetDiskAccountType, crashConsistentFrequencyInMinutes, appConsistentFrequencyInMinutes, recoveryPointThresholdInMinutes, recoveryPointHistory, multiVmSyncStatus
 | order by recoveryAzureVMName asc
 ```
+
+## List all subscriptions that are impacted by a specific Service Health Alert Tracking ID
+NOTE: Replace the XXXX-XXX in the script with the tracking ID you wish to search for.
+```kusto
+ServiceHealthResources
+| where type =~ 'Microsoft.ResourceHealth/events'
+| extend eventType = properties.EventType, status = properties.Status, eventdescription = properties.Title, trackingId = tostring(properties.TrackingId), summary = properties.Summary, priority = properties.Priority, impactStartTime = properties.ImpactStartTime, impactMitigationTime = properties.ImpactMitigationTime
+| mv-expand Impact = properties.Impact
+| extend ImpactedService = tostring(Impact.ImpactedService)
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions'
+| project SubscriptionName=name,subscriptionId) on subscriptionId
+| where trackingId == "XXXX-XXX"
+| project eventdescription, summary, SubscriptionName, subscriptionId, trackingId, status, ImpactedService, todatetime(impactStartTime), todatetime(impactMitigationTime)
+| order by tostring(trackingId) asc 
+```
