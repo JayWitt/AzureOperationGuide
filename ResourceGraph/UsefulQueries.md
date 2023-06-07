@@ -779,3 +779,29 @@ ServiceHealthResources
 | project eventdescription, summary, SubscriptionName, subscriptionId, trackingId, status, ImpactedService, todatetime(impactStartTime), todatetime(impactMitigationTime)
 | order by tostring(trackingId) asc 
 ```
+
+## List information of VMs for further analysis of extensions (like for Azure Run Command)
+```kusto
+resources
+| where type == "microsoft.compute/virtualmachines"
+| extend OSType = properties.storageProfile.osDisk.osType
+| extend OSName = properties.extended.instanceView.osName
+| extend OSVer = properties.extended.instanceView.osVersion
+| mv-expand NIC = properties.networkProfile.networkInterfaces
+| extend NICid = tostring(NIC.id)
+| join kind=leftouter (resources
+| where type == "microsoft.network/networkinterfaces"
+| extend NICid = tostring(id)
+| mv-expand ipConfig = properties.ipConfigurations
+| extend SubnetId = ipConfig.properties.subnet.id
+| extend VNet = split(SubnetId,"/")[8]
+| extend IpConfigId = tostring(ipConfig.id)
+| join kind=leftouter (resources
+| where type == "microsoft.network/loadbalancers"
+| mv-expand lbNIC = properties.backendAddressPools
+| mv-expand lbNICBE = lbNIC.properties.loadBalancerBackendAddresses
+| extend IpConfigId = tostring(lbNICBE.properties.networkInterfaceIPConfiguration.id)
+| extend lbName = name) on IpConfigId) on NICid
+| extend vmSize = properties.hardwareProfile.vmSize
+| project subscriptionId, resourceGroup, name, OSType, OSVer = strcat(OSName, " ",OSVer), location, VNet, lbName, vmSize
+```
