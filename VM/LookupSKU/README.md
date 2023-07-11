@@ -11,6 +11,15 @@ LookupSKU.ps1 <region> <SKU>
 * **SKU** - This could be represented by the full name with underscores (i.e. Standard_M128ms_v2) or just the part that represents the name (i.e. m128ms_v2)
 
 
-![LookupSKUExample](https://github.com/JayWitt/AzureOperationGuide/raw/master/VM/LookupSKUExample.png)
+![LookupSKUExample](https://github.com/JayWitt/AzureOperationGuide/raw/master/VM/LookupSKU/LookupSKUExample.png)
 
+**NOTE** - The results of this command mostly comes from the [Get-AzComputeResourceSku](https://learn.microsoft.com/en-us/powershell/module/az.compute/get-azcomputeresourcesku?view=azps-10.1.0) Powershell command. The results between VM SKUs may vary because not all output is consistent between SKUs.
 
+There are some data that is highlighted in yellow to help make it easier to readable.
+
+**PRO-TIP** - I have created a Windows Command file that I keep stored in a folder that resides in my %PATH% that then also takes two inputs and passes them to this powershell script. This helps to make this data at your fingertips. Just open a command prompt and type in ```lookupsku eastus M128ms_v2``` to generate the results shown in the above screen shot.
+
+```Command
+@echo off
+powershell %onedriveconsumer%\scripts\lookupsku.ps1 %1 %2
+```
