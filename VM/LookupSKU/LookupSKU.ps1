@@ -3,9 +3,6 @@
     [parameter(Mandatory=$true)][string]$LookupVMSKU
     ) 
 
-#$location = "eastus"
-#$LookupVMSKU = "Standard_D4"
-
 if ($LookupVMSKU.IndexOf("Standard") -lt 0) {$LookupVMSKU = "Standard_$LookupVMSKU"}
 
 $PriceListPath = "$PSScriptRoot\LookupSKU_PriceList-$location.csv"
@@ -34,7 +31,6 @@ if ($needNewVMFile -or $needNewPriceFile)
     write-host -ForegroundColor Cyan "Collecting VM Pricing Information"
     $prices = @{}
     $url = "https://prices.azure.com/api/retail/prices?`$filter=armRegionName eq '$location' and pricetype eq 'Consumption' and serviceName eq 'Virtual Machines'"
-    #$url = "https://prices.azure.com/api/retail/prices?`$filter=pricetype eq 'Consumption' and serviceName eq 'Virtual Machines'"
     $webReq = (Invoke-WebRequest -Uri $url).content | ConvertFrom-Json
     $priceList = $webReq.Items
     $estimatedCount
@@ -141,16 +137,6 @@ if ($needNewVMFile -or $needNewPriceFile)
     $output | Export-Csv -Path $outputfilepath -NoTypeInformation
 }
 
-
-Function FormatOutput {
-    param (
-        $outKey,
-        $outValue
-        )
-
-    $results = $outkey+$outValue.PadLeft(45) 
-
-}
 
 $result = $output | Where-Object {$_.SKU -eq $LookupVMSKU} | Sort-Object -Property Name
 
