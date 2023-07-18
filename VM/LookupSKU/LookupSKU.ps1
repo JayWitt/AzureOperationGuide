@@ -153,47 +153,47 @@ if ($result -ne $null) {
                 "Restrictions*" {
                                 if ($($result.$($property.name)) -ne "")
                                 {
-                                    write-host -ForegroundColor White "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                                    write-host -ForegroundColor White "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                                 }
                             }
                 "CombinedTempDiskAndCachedReadMBPerSecond" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "CombinedTempDiskAndCachedReadMiBPerSecond" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "CombinedTempDiskAndCachedWriteMBPerSecond" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "CombinedTempDiskAndCachedWriteMiBPerSecond" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "MaxDataDiskCount" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "MaxNetworkInterfaces" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "MemoryGB" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "vCPUs" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "RetailMonthlyPrice" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "UnachedDiskIOPS" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "UncachedDiskMBPerSecond" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 "UncachedDiskMiBPerSecond" {
-                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor Yellow "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                             }
                 Default {
-                        write-host -ForegroundColor White "$($property.Name): $($($result.$($property.name)).PadLeft(48-$($property.Name).Length))"
+                        write-host -ForegroundColor White "$($property.Name): $($($result.$($property.name)).tostring().PadLeft(48-$($property.Name).Length))"
                     }
 
             }
