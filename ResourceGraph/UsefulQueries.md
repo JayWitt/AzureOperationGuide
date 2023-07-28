@@ -805,3 +805,30 @@ resources
 | extend vmSize = properties.hardwareProfile.vmSize
 | project subscriptionId, resourceGroup, name, OSType, OSVer = strcat(OSName, " ",OSVer), location, VNet, lbName, vmSize
 ```
+
+## Report VM Disk configuration detail at scale
+Just replace the xxx with a portion of the server names that you would like to pull the disk configuration for and run this script. You can also replace the "where name" line with whatever query you would need to narrow down the scope of servers you would like to validate.
+```kusto
+resources
+| where type == "microsoft.compute/virtualmachines"
+| where name contains 'xxx'
+| mv-expand dd = properties.storageProfile.dataDisks
+| extend DiskLUN = tostring(dd.lun)
+| extend WriteAccelerator = dd.writeAcceleratorEnabled
+| extend caching = dd.caching
+| extend diskSizeGB = dd.diskSizeGB
+| extend Type = dd.managedDisk.storageAccountType
+| extend ddMDID = tostring(dd.managedDisk.id)
+| join kind=leftouter (resources
+| where type == "microsoft.compute/disks"
+| extend diskMBpsReadWrite = properties.diskMBpsReadWrite
+| extend diskIOPSReadWrite = properties.diskIOPSReadWrite
+| extend disktier = properties.tier
+| extend ddMDID = tostring(id)
+| project name, diskMBpsReadWrite, diskIOPSReadWrite, disktier, ddMDID) on ddMDID
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| project name, SubName, resourceGroup, DiskLUN, WriteAccelerator, caching, diskMBpsReadWrite, diskIOPSReadWrite, disktier, diskSizeGB, Type
+| order by name,DiskLUN asc
+```
