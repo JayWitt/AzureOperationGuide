@@ -825,10 +825,11 @@ resources
 | extend diskIOPSReadWrite = properties.diskIOPSReadWrite
 | extend disktier = properties.tier
 | extend ddMDID = tostring(id)
-| project name, diskMBpsReadWrite, diskIOPSReadWrite, disktier, ddMDID) on ddMDID
+| extend diskName = name
+| project diskName, diskMBpsReadWrite, diskIOPSReadWrite, disktier, ddMDID) on ddMDID
 | join kind=leftouter (ResourceContainers 
 | where type=='microsoft.resources/subscriptions' 
 | project SubName=name, subscriptionId) on subscriptionId
-| project name, SubName, resourceGroup, DiskLUN, WriteAccelerator, caching, diskMBpsReadWrite, diskIOPSReadWrite, disktier, diskSizeGB, Type
+| project name, SubName, resourceGroup, diskName, DiskLUN, WriteAccelerator, caching, diskMBpsReadWrite, diskIOPSReadWrite, disktier, diskSizeGB, Type
 | order by name,DiskLUN asc
 ```
