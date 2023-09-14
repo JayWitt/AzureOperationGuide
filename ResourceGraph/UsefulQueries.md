@@ -833,3 +833,15 @@ resources
 | project name, SubName, resourceGroup, diskName, DiskLUN, WriteAccelerator, caching, diskMBpsReadWrite, diskIOPSReadWrite, disktier, diskSizeGB, Type
 | order by name,DiskLUN asc
 ```
+
+## Report Boot Diagnostics at scale
+```kusto
+resourcesresources
+| where type == "microsoft.compute/virtualmachines"
+| extend bootDiagnosticsStatus = properties.diagnosticsProfile.bootDiagnostics.enabled
+| extend bootDiagnosticsStorage = properties.diagnosticsProfile.bootDiagnostics.storageUri
+| join kind=leftouter (ResourceContainers 
+| where type=='microsoft.resources/subscriptions' 
+| project SubName=name, subscriptionId) on subscriptionId
+| project name, SubName, resourceGroup, bootDiagnosticsStatus, bootDiagnosticsStorage
+```
