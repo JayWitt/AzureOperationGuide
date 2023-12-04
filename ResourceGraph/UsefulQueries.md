@@ -845,3 +845,22 @@ resourcesresources
 | project SubName=name, subscriptionId) on subscriptionId
 | project name, SubName, resourceGroup, bootDiagnosticsStatus, bootDiagnosticsStorage
 ```
+
+## Report Azure NetApp File Information at scale
+```kusto
+resources
+| where type == "microsoft.netapp/netappaccounts/capacitypools/volumes"
+| mv-expand mounts = properties.mountTargets
+| extend MountIPAddress = mounts.ipAddress
+| extend PPG = properties.proximityPlacementGroup
+| extend Proximity = properties.storageToNetworkProximity
+| extend CapacityId = properties.capacityPoolResourceId
+| extend Account = split(id,"/")[8]
+| extend CapacityPool = split(id,"/")[10]
+| extend VolumeName = split(name,"/")[2]
+| extend ShareName = properties.creationToken
+| extend SubnetID = properties.subnetId
+| extend T2Network = properties.t2Network
+| extend VolumeGroupName = properties.volumeGroupName
+| project name, subscriptionId, resourceGroup, PPG, MountIPAddress, ShareName, VolumeName, Proximity, Account, CapacityPool, CapacityId, T2Network, VolumeGroupName
+```
