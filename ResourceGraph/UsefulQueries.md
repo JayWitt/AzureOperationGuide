@@ -857,10 +857,16 @@ resources
 | extend CapacityId = properties.capacityPoolResourceId
 | extend Account = split(id,"/")[8]
 | extend CapacityPool = split(id,"/")[10]
+| extend serviceLevel = properties.serviceLevel
 | extend VolumeName = split(name,"/")[2]
 | extend ShareName = properties.creationToken
 | extend SubnetID = properties.subnetId
 | extend T2Network = properties.t2Network
 | extend VolumeGroupName = properties.volumeGroupName
-| project name, subscriptionId, resourceGroup, PPG, MountIPAddress, ShareName, VolumeName, Proximity, Account, CapacityPool, CapacityId, T2Network, VolumeGroupName
+| extend CapName = strcat(Account,"/",CapacityPool)
+| join kind=leftouter(resources
+| where type == "microsoft.netapp/netappaccounts/capacitypools"
+| extend CapsizeTB = properties.size / (1024*1024*1024*1024)
+| extend CapName = name) on CapName
+| project name, subscriptionId, resourceGroup, PPG, MountIPAddress, ShareName, VolumeName, Proximity, Account, CapacityPool, serviceLevel, CapsizeTB, CapacityId, T2Network, VolumeGroupName
 ```
