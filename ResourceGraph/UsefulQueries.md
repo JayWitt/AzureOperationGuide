@@ -860,7 +860,7 @@ resources
 | extend serviceLevel = properties.serviceLevel
 | extend VolumeName = split(name,"/")[2]
 | extend ShareName = properties.creationToken
-| extend SubnetID = properties.subnetId
+| extend SubnetID = tostring(properties.subnetId)
 | extend T2Network = properties.t2Network
 | extend VolumeGroupName = properties.volumeGroupName
 | extend CapName = strcat(Account,"/",CapacityPool)
@@ -868,7 +868,17 @@ resources
 | where type == "microsoft.netapp/netappaccounts/capacitypools"
 | extend CapsizeTB = properties.size / (1024*1024*1024*1024)
 | extend CapName = name) on CapName
-| project name, subscriptionId, resourceGroup, PPG, MountIPAddress, ShareName, VolumeName, Proximity, Account, CapacityPool, serviceLevel, CapsizeTB, CapacityId, T2Network, VolumeGroupName
+| extend QuotaGB = properties.usageThreshold  / (1024*1024*1024)
+| extend ThroughputMiBs = properties.throughputMibps
+| extend vnetName = split(SubnetID,"/")[8]
+| extend subnetName = split(SubnetID,"/")[10]
+| join kind=leftouter(resources
+| where type == "microsoft.network/virtualnetworks"
+| mv-expand subnet = properties.subnets
+| extend subnetPrefix = subnet.properties.addressPrefix
+| extend SubnetID = tostring(subnet.id)
+| project subnetPrefix, SubnetID) on SubnetID
+| project name, subscriptionId, resourceGroup, PPG, MountIPAddress, ShareName, VolumeName, Proximity, Account, CapacityPool, serviceLevel, CapsizeTB, CapacityId, QuotaGB, ThroughputMiBs, T2Network, VolumeGroupName, subnetPrefix
 ```
 
 ## Report on SAP Supported Hardware at scale
