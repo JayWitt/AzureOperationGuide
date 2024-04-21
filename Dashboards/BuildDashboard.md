@@ -1,7 +1,7 @@
 # Build Metrics Dashboard
-This script is used to dynamically create monitoring dashboards. You can use the following Resource Graph query to collect the Resource IDs of the servers that you would like to monitor and feed it to the script. A couple things to keep in mind:
+This [script](https://github.com/JayWitt/AzureOperationGuide/tree/master/Dashboards/BuildDashboard.ps1) is used to dynamically create monitoring dashboards. You can use the following Resource Graph query to collect the Resource IDs of the servers that you would like to monitor and feed it to the script. A couple things to keep in mind:
 
-* The script will split up the resources into groups of 10. 
+* The script will split up the resources into groups of 10.
 * The following resource graph query will put everything into a single line and the results must be converted to be quoted with double quotes.
 * The resource graph query is just an example to grab all of the servers in a single resource group, but can be adjusted to filter the query however you would like. The key output needed is the Resource ID.
 * There are two fileds that need to be updated:
