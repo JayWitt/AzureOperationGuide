@@ -7,7 +7,7 @@ $outputFolder = "<<output folder>>"
 #
 # resources
 #| where type == "microsoft.compute/virtualmachines"
-#| where resourceGroup contains "NP1"
+#| where resourceGroup contains "<<group1>>"
 #| summarize result = strcat_array(make_list(id), ",")
 #
 #####
