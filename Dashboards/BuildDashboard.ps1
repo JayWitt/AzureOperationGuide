@@ -12,7 +12,7 @@ $outputFolder = "<<output folder>>"
 #
 #####
 
-$starter = @"
+$mainstarter = @"
 {
     "properties": {
       "lenses": {
@@ -65,7 +65,7 @@ $starter = @"
   }
 "@
 
-$starter = $starter | convertFrom-json
+$starter = $mainstarter | convertFrom-json
 $counter = 1
 $filenameCount = 0
 
@@ -1258,7 +1258,7 @@ $value=@"
   "$($id+12)": {
     "position": {
       "x": 15,
-      "y": $($id+9),
+      "y": $($y+9),
       "colSpan": 5,
       "rowSpan": 4
     },
@@ -1324,6 +1324,10 @@ $value=@"
 "@ | convertfrom-json
 $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+12) -Value $value.$($id+12)
 
+$y += 13
+$id += 13
+$counter += 1
+
 if ($counter -gt 10) 
 {
   $filenameCount += 1
@@ -1333,11 +1337,9 @@ if ($counter -gt 10)
   $outFilePath = "$outputFolder\$DashboardName-$filenameCount.json"
   $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
   $counter = 1
+  $starter = $mainstarter | ConvertFrom-Json
+  $y = 0
 }
-
-    $y += 13
-    $id += 13
-    $counter += 1
 }
 
 $filenameCount
@@ -1345,11 +1347,16 @@ if ($filenameCount -eq 0)
 {
   Write-host -ForegroundColor yellow "Outputing to $DashboardName"
   $outFilePath = "$outputFolder\$DashboardName.json"
+  $outFilePath
+  $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
 } else {
-  $starter.name = "$DashboardName-$filenameCount"
-  $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
-  Write-host -ForegroundColor yellow "Outputing to --->$DashboardName"
-  $outFilePath = "$outputFolder\$DashboardName-$filenameCount.json"
+  if ($starter.properties.lenses."0".parts."0".count -gt 0)
+  {
+    $starter.name = "$DashboardName-$filenameCount"
+    $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
+    Write-host -ForegroundColor yellow "Outputing to --->$DashboardName"
+    $outFilePath = "$outputFolder\$DashboardName-$filenameCount.json"
+    $outFilePath
+    $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
+  }
 }
-$outFilePath
-$starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
