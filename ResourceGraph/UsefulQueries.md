@@ -487,7 +487,7 @@ Resources
 resources
 | where type == "microsoft.containerservice/managedclusters"
 | extend skuName = sku.name
-| extend skuSLA = iff(sku.tier=="Paid","SLA (Paid Tier)","CostSavings (Free Tier)")
+| extend skuSLA = sku.tier
 | extend networkPlugin = properties.networkProfile.networkPlugin
 | extend networkPolicy = properties.networkProfile.networkPolicy
 | extend powerState = properties.powerState.code
@@ -509,8 +509,8 @@ resources
 | extend APSubnetId = ap.vnetSubnetID
 | extend APMaxPods = ap.maxPods
 | extend APUltraDisk = ap.enableUltraSSD
-| extend APMaxCount = ap.maxCount
-| extend APMinCount = ap.minCount
+| extend NodeMaxCount = ap.maxCount
+| extend NodeMinCount = ap.minCount
 | extend APZones = ap.availabilityZones
 | extend APMaxSurge = iff(ap.upgradeSettings.maxSurge=="","Default",ap.upgradeSettings.maxSurge)
 | extend APOSSku = ap.osSKU
@@ -539,7 +539,7 @@ resources
 | join kind=leftouter (ResourceContainers 
 | where type=='microsoft.resources/subscriptions' 
 | project SubName=name, subscriptionId) on subscriptionId
-| project name, location, resourceGroup, subscriptionId, SubName, skuName, skuSLA, networkPlugin, networkPolicy, provisionState, powerState, fqdn, APName, APType, APOS, APZones, APPowerState, APMode, APVersion, APNodeVersion, APOSDiskSize, APOSDiskType, APSubnetId, APAutoScale, APVmSize, NodeCount, APMaxSurge, APMaxPods, APUltraDisk, APMaxCount, APMinCount, APOSSku, NodeRG, maxAgentPools, enableRBAC, scaledownutilizationthreshold, scaledowndelayafterfailure, skipnodeswithlocalstorage, scaledowndelayafterdelete, maxgracefulterminationsec, maxtotalunreadypercentage, balancesimilarnodegroups, skipnodeswithsystempods, scaledowndelayafteradd, scaledownunneededtime, maxnodeprovisiontime, scaledownunreadytime, newpodscaleupdelay, oktotalunreadycount, maxemptybulkdelete, scaninterval, expander, linuxAdmin, kubernetesVersion
+| project name, location, resourceGroup, subscriptionId, SubName, skuName, skuSLA, networkPlugin, networkPolicy, provisionState, powerState, fqdn, APName, APType, APOS, APZones, APPowerState, APMode, APVersion, APNodeVersion, APOSDiskSize, APOSDiskType, APSubnetId, APAutoScale, APVmSize, NodeCount, APMaxSurge, APMaxPods, APUltraDisk, NodeMinCount, NodeMaxCount, APOSSku, NodeRG, maxAgentPools, enableRBAC, scaledownutilizationthreshold, scaledowndelayafterfailure, skipnodeswithlocalstorage, scaledowndelayafterdelete, maxgracefulterminationsec, maxtotalunreadypercentage, balancesimilarnodegroups, skipnodeswithsystempods, scaledowndelayafteradd, scaledownunneededtime, maxnodeprovisiontime, scaledownunreadytime, newpodscaleupdelay, oktotalunreadycount, maxemptybulkdelete, scaninterval, expander, linuxAdmin, kubernetesVersion
 ```
 ## Query which reports on the node types in all of the HDI Clusters
 ```kusto
