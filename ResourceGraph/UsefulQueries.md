@@ -896,3 +896,13 @@ resources
 | where SAPSupportedHW == "Double Check"
 | project name, SubName, subscriptionId, resourceGroup, location, vmSize, SAPSupportedHW
 ```
+## View the Operating Systems used by a set of subscriptions
+```kusto
+resources
+| where type == "microsoft.compute/virtualmachines"
+| extend osName = tostring(properties.extended.instanceView.osName)
+| extend osVersion = tostring(properties.extended.instanceView.osVersion)
+| where subscriptionId in ("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+| summarize count() by osName, osVersion 
+| order by ['count_'] desc
+```
