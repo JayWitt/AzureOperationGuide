@@ -906,38 +906,3 @@ resources
 | summarize count() by osName, osVersion 
 | order by ['count_'] desc
 ```
-## Report on main resource types used for Azure Event Management
-```kusto
-resources
-| where subscriptionId in ("xxx","xxx","xxx")
-| extend ResourceType = case(type == "microsoft.automation/automationaccounts","Azure Automation",
-    type == "microsoft.compute/disks","Managed Disk",
-    type == "microsoft.compute/virtualmachines","Virtual Machine",
-    type == "microsoft.compute/virtualmachinescalesets","Virtual Machine Scale Set",
-    type == "microsoft.containerservice/managedclusters","AKS",
-    type == "microsoft.databricks/workspaces","Databricks",
-    type == "microsoft.datafactory/factories","Datafactory",
-    type == "microsoft.dbformysql/servers","Database for MySQL",
-    type == "microsoft.devtestlab/schedules","DevTest Labs",
-    type == "microsoft.eventgrid/systemtopics","Event Grid",
-    type == "microsoft.keyvault/vaults","Key Vault",
-    type == "microsoft.logic/workflows","Logic App",
-    type == "microsoft.netapp/netappaccounts/capacitypools/volumes","NetApp Files",
-    type == "microsoft.network/dnszones","DNS",
-    type == "microsoft.network/expressroutecircuits","ExpressRoute",
-    type == "microsoft.network/loadbalancers","Load Balancer",
-    type == "microsoft.network/privatednszones","DNS",
-    type == "microsoft.network/privatelinkservices","Private Link",
-    type == "microsoft.network/virtualnetworkgateways","VPN Gateway",
-    type == "microsoft.network/virtualnetworks","Virtual Network",
-    type == "microsoft.servicebus/namespaces","Service Bus",
-    type == "microsoft.sql/servers","Azure SQL",
-    type == "microsoft.sql/servers/databases","Azure SQL Database",
-    type == "microsoft.storage/storageaccounts","Storage Accounts",
-    type == "microsoft.web/sites","Web Apps",
-    "other")
-| where ResourceType != "other"
-| summarize count() by ResourceType 
-| order by ['count_'] desc
-
-```
