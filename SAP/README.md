@@ -6,7 +6,7 @@ You can point this Mass SAP Qualtiy Check Script Report Gatherer script to the f
 
 ## How to use it
 1. Put all of the Quality Check script output into a folder.
-1. Download the [script](MassQC-Check.ps1).
+1. Download the [script](SAP/MassQC-Check.ps1).
 1. Update the $folderpath variable with the path to where the HTML output reports are stored.
 1. Run the Powershell command.
 1. The script will output the consolidated report into a file named QCOutput.xlsx in the same folder path set in the variable.
