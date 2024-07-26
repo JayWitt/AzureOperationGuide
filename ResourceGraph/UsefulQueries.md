@@ -909,7 +909,11 @@ resources
 ## Report on main resource types used for Azure Event Management
 ```kusto
 resources
+<<<<<<< HEAD
 | where subscriptionId in ("xxx","xxx","xxx")
+=======
+| where subscriptionId in ("c94548cf-d314-4bd5-abd2-eee92de2aab7","b32a6185-0803-494b-83dd-6839ead0eb58","2aeadce5-5c3b-454c-8f9d-2cf54bbe04a5")
+>>>>>>> 1ef113b7f5d932b1c8813f66e715e38e6e915fbd
 | extend ResourceType = case(type == "microsoft.automation/automationaccounts","Azure Automation",
     type == "microsoft.compute/disks","Managed Disk",
     type == "microsoft.compute/virtualmachines","Virtual Machine",
