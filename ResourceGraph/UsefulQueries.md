@@ -907,6 +907,7 @@ resources
 | order by ['count_'] desc
 ```
 ## Report on main resource types used for Azure Event Management
+Update the subscription IDs if you wanted to limit it to certain subscriptions.
 ```kusto
 resources
 | where subscriptionId in ("xxx","xxx","xxx")
