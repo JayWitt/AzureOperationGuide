@@ -940,5 +940,30 @@ resources
 | where ResourceType != "other"
 | summarize count() by ResourceType 
 | order by ['count_'] desc
-
+```
+## Report on Capacity Reservations
+```kusto
+resources
+| where type == "microsoft.compute/capacityreservationgroups"
+| extend CapResId= tolower(tostring(id))
+| extend CapResGrpName = name
+| extend CapResGrpState = properties.provisioningState
+| mv-expand CapResGrpRes = properties.capacityReservations
+| extend CapResGrpId = tolower(tostring(CapResGrpRes.id))
+| project CapResId, CapResGrpName, CapResGrpState, CapResGrpId
+| join kind=leftouter (resources
+| where type == "microsoft.compute/capacityreservationgroups/capacityreservations"
+| extend CapResName = name
+| extend CapResSKU = sku.name
+| extend CapResSKUCap = sku.capacity
+| mv-expand CapResZone = zones
+| extend CapResGrpId = tolower(tostring(id))) on CapResGrpId
+| join kind=leftouter (resources
+| where type == "microsoft.compute/virtualmachines"
+| extend vmName = name
+| extend vmRG = resourceGroup
+| extend vmSub = subscriptionId
+| extend vmState = properties.extended.instanceView.powerState.displayStatus
+| extend CapResId = tolower(tostring(properties.capacityReservation.capacityReservationGroup.id))) on CapResId
+| project CapResGrpName, CapResGrpState, CapResName, location, subscriptionId, CapResSKU, CapResSKUCap, CapResZone, vmName, vmState, vmRG, vmSub
 ```
