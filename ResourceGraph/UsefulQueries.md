@@ -942,6 +942,7 @@ resources
 | order by ['count_'] desc
 ```
 ## Report on Capacity Reservations
+NOTE: The query will show that a VM is assigned even if the VM is deallocated. The portal on the ohter hand will not so it associated to the Capacity Reservation Group.
 ```kusto
 resources
 | where type == "microsoft.compute/capacityreservationgroups"
