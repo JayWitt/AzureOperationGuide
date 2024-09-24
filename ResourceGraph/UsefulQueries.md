@@ -968,3 +968,14 @@ resources
 | extend CapResId = tolower(tostring(properties.capacityReservation.capacityReservationGroup.id))) on CapResId
 | project CapResGrpName, CapResGrpState, CapResName, location, subscriptionId, CapResSKU, CapResSKUCap, CapResZone, vmName, vmState, vmRG, vmSub
 ```
+
+## Report on ASR Agent Upgrade Status
+NOTE: This query will report on the isReplicationAgentUpdateRequired value across the Recovery Service Vaults that you have access to.
+```kusto
+recoveryservicesresources
+| where type contains "replicationProtectedItems"
+| extend isReplicationAgentUpdateRequired = properties.providerSpecificDetails.isReplicationAgentUpdateRequired
+| extend resourceId = properties.providerSpecificDetails.dataSourceInfo.resourceId
+| extend VMName = split(resourceId,"/")[8]
+| project VMName,  isReplicationAgentUpdateRequired 
+```
