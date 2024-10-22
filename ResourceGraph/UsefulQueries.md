@@ -814,6 +814,9 @@ Just replace the xxx with a portion of the server names that you would like to p
 resources
 | where type == "microsoft.compute/virtualmachines"
 | where name contains 'xxx'
+| extend osDiskName = properties.storageProfile.osDisk.name
+| extend osDiskSize = properties.storageProfile.osDisk.diskSizeGB
+| extend osDiskAccountType = properties.storageProfile.osDisk.managedDisk.storageAccountType
 | mv-expand dd = properties.storageProfile.dataDisks
 | extend DiskLUN = tostring(dd.lun)
 | extend WriteAccelerator = dd.writeAcceleratorEnabled
@@ -832,7 +835,7 @@ resources
 | join kind=leftouter (ResourceContainers 
 | where type=='microsoft.resources/subscriptions' 
 | project SubName=name, subscriptionId) on subscriptionId
-| project name, SubName, resourceGroup, diskName, DiskLUN, WriteAccelerator, caching, diskMBpsReadWrite, diskIOPSReadWrite, disktier, diskSizeGB, Type
+| project name, SubName, resourceGroup, osDiskName, osDiskSize, osDiskAccountType, diskName, DiskLUN, WriteAccelerator, caching, diskMBpsReadWrite, diskIOPSReadWrite, disktier, diskSizeGB, Type
 | order by name,DiskLUN asc
 ```
 
