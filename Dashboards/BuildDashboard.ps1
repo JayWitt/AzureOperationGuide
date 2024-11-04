@@ -2,16 +2,6 @@ $DashboardName = "<<name of dashboard>>"
 $ListOfResources = "<<List of resource IDs>>"
 $outputFolder = "<<output folder>>"
 
-#####
-# Resource Graph Query
-#
-# resources
-#| where type == "microsoft.compute/virtualmachines"
-#| where resourceGroup contains "<<group1>>"
-#| summarize result = strcat_array(make_list(id), ",")
-#
-#####
-
 $mainstarter = @"
 {
     "properties": {
@@ -41,7 +31,7 @@ $mainstarter = @"
               "MsPortalFx_TimeRange": {
                 "model": {
                   "format": "utc",
-                  "granularity": "auto",
+                  "granularity": "1m",
                   "relative": "24h"
                 },
                 "displayCache": {
@@ -65,6 +55,318 @@ $mainstarter = @"
   }
 "@
 
+
+function Build-Tile {
+    param (
+        [Parameter(Mandatory=$true)]
+        [int] $_id,
+        [Parameter(Mandatory=$true)]
+        [int] $_x,
+        [Parameter(Mandatory=$true)]
+        [int] $_y,
+        [Parameter(Mandatory=$true)]
+        [string] $_type,
+        [Parameter(Mandatory=$true)]
+        [string] $_ResourceID,
+        [string] $_MetricName,
+        [string] $_subTitle,
+        [boolean] $_ByLUN
+    )
+    $tileobj = ""
+
+    $resourceName = $_resourceId.split("/")[-1]
+
+    $Namespace = "$($_resourceId.split('/')[6])/$($_resourceId.split('/')[7])"
+
+    switch ($_type)
+    {
+        "Extension/HubsExtension/PartType/MarkdownPart" { 
+            $tileObj = @"
+            {
+            "$id": {
+              "position": {
+                "x": 0,
+                "y": $_y,
+                "colSpan": 20,
+                "rowSpan": 1
+              },
+              "metadata": {
+                "inputs": [],
+                "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                "settings": {
+                  "content": {
+                    "content": "",
+                    "title": "$ResourceName",
+                    "subtitle": "$_subTitle",
+                    "markdownSource": 1,
+                    "markdownUri": ""
+                  }
+                },
+                "partHeader": {
+                  "title": "$ResourceName",
+                  "subtitle": "$_subTitle"
+                }
+              }
+            }
+          }
+"@ }
+
+        "Extension/HubsExtension/PartType/MonitorChartPart" {
+            if ($Namespace -eq "microsoft.compute/virtualmachines")
+            {
+                if ($_ByLUN)
+                {
+                    $tileObj = @"
+                    {
+                    "$($_id)": {
+                        "position": {
+                        "x": $_x,
+                        "y": $_y,
+                        "colSpan": 5,
+                        "rowSpan": 4
+                        },
+                        "metadata": {
+                        "inputs": [
+                            {
+                            "name": "sharedTimeRange",
+                            "isOptional": true
+                            },
+                            {
+                            "name": "options",
+                            "value": {
+                                "chart": {
+                                "metrics": [
+                                    {
+                                    "resourceMetadata": {
+                                        "id": "$_ResourceID"
+                                    },
+                                    "name": "$_metricName",
+                                    "aggregationType": 4,
+                                    "namespace": "$namespace",
+                                    "metricVisualization": {
+                                        "displayName": "$_metricName"
+                                    }
+                                    }
+                                ],
+                                "title": "[$ResourceName] $_metricName by LUN",
+                                "titleKind": 1,
+                                "visualization": {
+                                    "chartType": 2,
+                                    "legendVisualization": {
+                                    "isVisible": true,
+                                    "position": 2,
+                                    "hideHoverCard": false,
+                                    "hideLabelNames": false
+                                    },
+                                    "axisVisualization": {
+                                    "x": {
+                                        "isVisible": true,
+                                        "axisType": 2
+                                    },
+                                    "y": {
+                                        "isVisible": true,
+                                        "axisType": 1
+                                    }
+                                    }
+                                },
+                                "timespan": {
+                                    "relative": {
+                                    "duration": 604800000
+                                    },
+                                    "showUTCTime": false,
+                                    "grain": 1
+                                }
+                                }
+                            },
+                            "isOptional": true
+                            }
+                        ],
+                        "type": "$_type",
+                        "settings": {
+                            "content": {
+                            "options": {
+                                "chart": {
+                                "metrics": [
+                                    {
+                                    "resourceMetadata": {
+                                        "id": "$_ResourceID"
+                                    },
+                                    "name": "$_metricName",
+                                    "aggregationType": 4,
+                                    "namespace": "$namespace",
+                                    "metricVisualization": {
+                                        "displayName": "$_metricName"
+                                    }
+                                    }
+                                ],
+                                "title": "[$ResourceName] $_metricName by LUN",
+                                "titleKind": 1,
+                                "visualization": {
+                                    "chartType": 2,
+                                    "legendVisualization": {
+                                    "isVisible": true,
+                                    "position": 2,
+                                    "hideHoverCard": false,
+                                    "hideLabelNames": false
+                                    },
+                                    "axisVisualization": {
+                                    "x": {
+                                        "isVisible": true,
+                                        "axisType": 2
+                                    },
+                                    "y": {
+                                        "isVisible": true,
+                                        "axisType": 1
+                                    }
+                                    },
+                                    "disablePinning": true
+                                },
+                                "grouping": {
+                                    "dimension": "LUN",
+                                    "sort": 2,
+                                    "top": 30
+                                }
+                                }
+                            }
+                            }
+                        }
+                        }
+                    }
+                    }
+"@ 
+                } else {
+                $tileObj = @"
+                {
+                "$($_id)": {
+                    "position": {
+                    "x": $_x,
+                    "y": $_y,
+                    "colSpan": 5,
+                    "rowSpan": 4
+                    },
+                    "metadata": {
+                    "inputs": [
+                        {
+                        "name": "sharedTimeRange",
+                        "isOptional": true
+                        },
+                        {
+                        "name": "options",
+                        "value": {
+                            "chart": {
+                            "metrics": [
+                                {
+                                "resourceMetadata": {
+                                    "id": "$_ResourceID"
+                                },
+                                "name": "$_metricName",
+                                "aggregationType": 4,
+                                "namespace": "$namespace",
+                                "metricVisualization": {
+                                    "displayName": "$_metricName"
+                                }
+                                }
+                            ],
+                            "title": "[$ResourceName] $_metricName",
+                            "titleKind": 1,
+                            "visualization": {
+                                "chartType": 2,
+                                "legendVisualization": {
+                                "isVisible": true,
+                                "position": 2,
+                                "hideHoverCard": false,
+                                "hideLabelNames": false
+                                },
+                                "axisVisualization": {
+                                "x": {
+                                    "isVisible": true,
+                                    "axisType": 2
+                                },
+                                "y": {
+                                    "isVisible": true,
+                                    "axisType": 1
+                                }
+                                }
+                            },
+                            "timespan": {
+                                "relative": {
+                                "duration": 604800000
+                                },
+                                "showUTCTime": false,
+                                "grain": 1
+                            }
+                            }
+                        },
+                        "isOptional": true
+                        }
+                    ],
+                    "type": "$_type",
+                    "settings": {
+                        "content": {
+                        "options": {
+                            "chart": {
+                            "metrics": [
+                                {
+                                "resourceMetadata": {
+                                    "id": "$_ResourceID"
+                                },
+                                "name": "$_metricName",
+                                "aggregationType": 4,
+                                "namespace": "$namespace",
+                                "metricVisualization": {
+                                    "displayName": "$_metricName"
+                                }
+                                }
+                            ],
+                            "title": "[$ResourceName] $_metricName",
+                            "titleKind": 1,
+                            "visualization": {
+                                "chartType": 2,
+                                "legendVisualization": {
+                                "isVisible": true,
+                                "position": 2,
+                                "hideHoverCard": false,
+                                "hideLabelNames": false
+                                },
+                                "axisVisualization": {
+                                "x": {
+                                    "isVisible": true,
+                                    "axisType": 2
+                                },
+                                "y": {
+                                    "isVisible": true,
+                                    "axisType": 1
+                                }
+                                },
+                                "disablePinning": true
+                            }
+                            }
+                        }
+                        }
+                    }
+                    }
+                }
+            }
+"@ }
+            } elseif ($Namespace -eq "")
+            {
+                $tileObj = "{}"
+            }
+
+        }
+
+        default{
+            $tileObj = "{}"
+        }
+
+    }
+
+    $tileobj = $tileobj | ConvertFrom-Json
+    return $tileobj 
+
+}
+  
+
 $starter = $mainstarter | convertFrom-json
 $counter = 1
 $filenameCount = 0
@@ -77,1276 +379,69 @@ foreach ($ResourceID in $ListOfResources)
     $ResourceName = $ResourceID.split("/")[8]
     write-host $ResourceName
 
-    $value = @"
-    {
-    "$id": {
-      "position": {
-        "x": 0,
-        "y": $y,
-        "colSpan": 20,
-        "rowSpan": 1
-      },
-      "metadata": {
-        "inputs": [],
-        "type": "Extension/HubsExtension/PartType/MarkdownPart",
-        "settings": {
-          "content": {
-            "content": "",
-            "title": "My title",
-            "subtitle": "My subtitle",
-            "markdownSource": 1,
-            "markdownUri": ""
-          }
-        },
-        "partHeader": {
-          "title": "$ResourceName",
-          "subtitle": "$purpose"
-        }
-      }
-    }
-  }
-"@ | convertfrom-json
-$starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $id -Value $value.$id
 
-    $value = @"
-    {
-    "$($id+1)": {
-        "position": {
-        "x": 0,
-        "y": $($y+1),
-        "colSpan": 5,
-        "rowSpan": 4
-        },
-        "metadata": {
-        "inputs": [
-            {
-            "name": "sharedTimeRange",
-            "isOptional": true
-            },
-            {
-            "name": "options",
-            "value": {
-                "chart": {
-                "metrics": [
-                    {
-                    "resourceMetadata": {
-                        "id": "$ResourceID"
-                    },
-                    "name": "VM Uncached Bandwidth Consumed Percentage",
-                    "aggregationType": 4,
-                    "namespace": "microsoft.compute/virtualmachines",
-                    "metricVisualization": {
-                        "displayName": "VM Uncached Bandwidth Consumed Percentage"
-                    }
-                    }
-                ],
-                "title": "Avg VM Uncached Bandwidth Consumed Percentage for $ResourceName",
-                "titleKind": 1,
-                "visualization": {
-                    "chartType": 2,
-                    "legendVisualization": {
-                    "isVisible": true,
-                    "position": 2,
-                    "hideHoverCard": false,
-                    "hideLabelNames": false
-                    },
-                    "axisVisualization": {
-                    "x": {
-                        "isVisible": true,
-                        "axisType": 2
-                    },
-                    "y": {
-                        "isVisible": true,
-                        "axisType": 1
-                    }
-                    }
-                },
-                "timespan": {
-                    "relative": {
-                    "duration": 604800000
-                    },
-                    "showUTCTime": false,
-                    "grain": 1
-                }
-                }
-            },
-            "isOptional": true
-            }
-        ],
-        "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-        "settings": {
-            "content": {
-            "options": {
-                "chart": {
-                "metrics": [
-                    {
-                    "resourceMetadata": {
-                        "id": "$ResourceID"
-                    },
-                    "name": "VM Uncached Bandwidth Consumed Percentage",
-                    "aggregationType": 4,
-                    "namespace": "microsoft.compute/virtualmachines",
-                    "metricVisualization": {
-                        "displayName": "VM Uncached Bandwidth Consumed Percentage"
-                    }
-                    }
-                ],
-                "title": "Avg VM Uncached Bandwidth Consumed Percentage for $ResourceName",
-                "titleKind": 1,
-                "visualization": {
-                    "chartType": 2,
-                    "legendVisualization": {
-                    "isVisible": true,
-                    "position": 2,
-                    "hideHoverCard": false,
-                    "hideLabelNames": false
-                    },
-                    "axisVisualization": {
-                    "x": {
-                        "isVisible": true,
-                        "axisType": 2
-                    },
-                    "y": {
-                        "isVisible": true,
-                        "axisType": 1
-                    }
-                    },
-                    "disablePinning": true
-                }
-                }
-            }
-            }
-        }
-        }
-    }
-    }
-"@ | convertfrom-json
+    $value = build-tile -_id $id -_x 0 -_y $y -_type "Extension/HubsExtension/PartType/MarkdownPart" -_ResourceID $ResourceID -_subTitle "Server Metrics"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $id -Value $value.$id
+
+    $value = build-tile -_id $($id+1) -_x 0 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "VM Uncached Bandwidth Consumed Percentage"
     $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+1) -Value $value.$($id+1)
 
-    $value = @"
-    {
-        "$($id+2)": {
-            "position": {
-            "x": 5,
-            "y": $($y+1),
-            "colSpan": 5,
-            "rowSpan": 4
-            },
-            "metadata": {
-            "inputs": [
-                {
-                "name": "sharedTimeRange",
-                "isOptional": true
-                },
-                {
-                "name": "options",
-                "value": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "VM Uncached IOPS Consumed Percentage",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "VM Uncached IOPS Consumed Percentage"
-                        }
-                        }
-                    ],
-                    "title": "Avg VM Uncached IOPS Consumed Percentage for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        }
-                    },
-                    "timespan": {
-                        "relative": {
-                        "duration": 604800000
-                        },
-                        "showUTCTime": false,
-                        "grain": 1
-                    }
-                    }
-                },
-                "isOptional": true
-                }
-            ],
-            "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-            "settings": {
-                "content": {
-                "options": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "VM Uncached IOPS Consumed Percentage",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "VM Uncached IOPS Consumed Percentage"
-                        }
-                        }
-                    ],
-                    "title": "Avg VM Uncached IOPS Consumed Percentage for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        },
-                        "disablePinning": true
-                    }
-                    }
-                }
-                }
-            }
-            }
-        }
-    }
-"@ | convertfrom-json
+    $value = build-tile -_id $($id+2) -_x 5 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "VM Uncached IOPS Consumed Percentage"
     $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+2) -Value $value.$($id+2)
 
+    $value = build-tile -_id $($id+3) -_x 10 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Network In Total"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+3) -Value $value.$($id+3)
 
-    $value = @"
-    {
-        "$($id+3)": {
-            "position": {
-            "x": 10,
-            "y": $($y+1),
-            "colSpan": 5,
-            "rowSpan": 4
-            },
-            "metadata": {
-            "inputs": [
-                {
-                "name": "sharedTimeRange",
-                "isOptional": true
-                },
-                {
-                "name": "options",
-                "value": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "Data Disk Latency",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "Data Disk Latency (Preview)"
-                        }
-                        }
-                    ],
-                    "title": "Avg Data Disk Latency (Preview) for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        }
-                    },
-                    "timespan": {
-                        "relative": {
-                        "duration": 604800000
-                        },
-                        "showUTCTime": false,
-                        "grain": 1
-                    }
-                    }
-                },
-                "isOptional": true
-                }
-            ],
-            "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-            "settings": {
-                "content": {
-                "options": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "Data Disk Latency",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "Data Disk Latency (Preview)"
-                        }
-                        }
-                    ],
-                    "title": "Avg Data Disk Latency (Preview) for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        },
-                        "disablePinning": true
-                    }
-                    }
-                }
-                }
-            }
-            }
-        }
-    }
-"@ | convertfrom-json
-        $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+3) -Value $value.$($id+3)
-        
-    $value = @"
-    {
-        "$($id+4)": {
-            "position": {
-            "x": 15,
-            "y": $($y+1),
-            "colSpan": 5,
-            "rowSpan": 4
-            },
-            "metadata": {
-            "inputs": [
-                {
-                "name": "sharedTimeRange",
-                "isOptional": true
-                },
-                {
-                "name": "options",
-                "value": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "Data Disk Queue Depth",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "Data Disk Queue Depth"
-                        }
-                        }
-                    ],
-                    "title": "Avg Data Disk Queue Depth for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        }
-                    },
-                    "timespan": {
-                        "relative": {
-                        "duration": 604800000
-                        },
-                        "showUTCTime": false,
-                        "grain": 1
-                    }
-                    }
-                },
-                "isOptional": true
-                }
-            ],
-            "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-            "settings": {
-                "content": {
-                "options": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "Data Disk Queue Depth",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "Data Disk Queue Depth"
-                        }
-                        }
-                    ],
-                    "title": "Avg Data Disk Queue Depth for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        },
-                        "disablePinning": true
-                    }
-                    }
-                }
-                }
-            }
-            }
-        }
-    }
-"@ | convertfrom-json
-        $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+4) -Value $value.$($id+4)
+    $value = build-tile -_id $($id+4) -_x 15 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Network Out Total" 
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+4) -Value $value.$($id+4)
 
-    $value =@"
-    {
-        "$($id+5)": {
-            "position": {
-            "x": 0,
-            "y": $($y+5),
-            "colSpan": 5,
-            "rowSpan": 4
-            },
-            "metadata": {
-            "inputs": [
-                {
-                "name": "sharedTimeRange",
-                "isOptional": true
-                },
-                {
-                "name": "options",
-                "value": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "Percentage CPU",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "Percentage CPU"
-                        }
-                        }
-                    ],
-                    "title": "Avg Percentage CPU for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        }
-                    },
-                    "timespan": {
-                        "relative": {
-                        "duration": 604800000
-                        },
-                        "showUTCTime": false,
-                        "grain": 1
-                    }
-                    }
-                },
-                "isOptional": true
-                }
-            ],
-            "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-            "settings": {
-                "content": {
-                "options": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "Percentage CPU",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "Percentage CPU"
-                        }
-                        }
-                    ],
-                    "title": "Avg Percentage CPU for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        },
-                        "disablePinning": true
-                    }
-                    }
-                }
-                }
-            }
-            }
-        }
-    }
-"@ | convertfrom-json
-        $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+5) -Value $value.$($id+5)
-        
-    $value=@"
-    {
-        "$($id+6)": {
-            "position": {
-            "x": 5,
-            "y": $($y+5),
-            "colSpan": 5,
-            "rowSpan": 4
-            },
-            "metadata": {
-            "inputs": [
-                {
-                "name": "sharedTimeRange",
-                "isOptional": true
-                },
-                {
-                "name": "options",
-                "value": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "OS Disk Bandwidth Consumed Percentage",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "OS Disk Bandwidth Consumed Percentage"
-                        }
-                        }
-                    ],
-                    "title": "Avg OS Disk Bandwidth Consumed Percentage for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        }
-                    },
-                    "timespan": {
-                        "relative": {
-                        "duration": 604800000
-                        },
-                        "showUTCTime": false,
-                        "grain": 1
-                    }
-                    }
-                },
-                "isOptional": true
-                }
-            ],
-            "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-            "settings": {
-                "content": {
-                "options": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "OS Disk Bandwidth Consumed Percentage",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "OS Disk Bandwidth Consumed Percentage"
-                        }
-                        }
-                    ],
-                    "title": "Avg OS Disk Bandwidth Consumed Percentage for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        },
-                        "disablePinning": true
-                    }
-                    }
-                }
-                }
-            }
-            }
-        }
-    }
-"@ | convertfrom-json
-        $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+6) -Value $value.$($id+6)
+    $value = build-tile -_id $($id+5) -_x 0 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Percentage CPU"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+5) -Value $value.$($id+5)
 
-    $value=@"
-    {
-        "$($id+7)": {
-            "position": {
-            "x": 10,
-            "y": $($y+5),
-            "colSpan": 5,
-            "rowSpan": 4
-            },
-            "metadata": {
-            "inputs": [
-                {
-                "name": "sharedTimeRange",
-                "isOptional": true
-                },
-                {
-                "name": "options",
-                "value": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "OS Disk IOPS Consumed Percentage",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "OS Disk IOPS Consumed Percentage"
-                        }
-                        }
-                    ],
-                    "title": "Avg OS Disk IOPS Consumed Percentage for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        }
-                    },
-                    "timespan": {
-                        "relative": {
-                        "duration": 604800000
-                        },
-                        "showUTCTime": false,
-                        "grain": 1
-                    }
-                    }
-                },
-                "isOptional": true
-                }
-            ],
-            "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-            "settings": {
-                "content": {
-                "options": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "OS Disk IOPS Consumed Percentage",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "OS Disk IOPS Consumed Percentage"
-                        }
-                        }
-                    ],
-                    "title": "Avg OS Disk IOPS Consumed Percentage for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        },
-                        "disablePinning": true
-                    }
-                    }
-                }
-                }
-            }
-            }
-        }
-    }
-"@ | convertfrom-json
-        $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+7) -Value $value.$($id+7)
-        
-    $value=@"
-    {
-        "$($id+8)": {
-            "position": {
-            "x": 15,
-            "y": $($y+5),
-            "colSpan": 5,
-            "rowSpan": 4
-            },
-            "metadata": {
-            "inputs": [
-                {
-                "name": "sharedTimeRange",
-                "isOptional": true
-                },
-                {
-                "name": "options",
-                "value": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "OS Disk Latency",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "OS Disk Latency (Preview)"
-                        }
-                        }
-                    ],
-                    "title": "Avg OS Disk Latency (Preview) for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        }
-                    },
-                    "timespan": {
-                        "relative": {
-                        "duration": 604800000
-                        },
-                        "showUTCTime": false,
-                        "grain": 1
-                    }
-                    }
-                },
-                "isOptional": true
-                }
-            ],
-            "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-            "settings": {
-                "content": {
-                "options": {
-                    "chart": {
-                    "metrics": [
-                        {
-                        "resourceMetadata": {
-                            "id": "$ResourceID"
-                        },
-                        "name": "OS Disk Latency",
-                        "aggregationType": 4,
-                        "namespace": "microsoft.compute/virtualmachines",
-                        "metricVisualization": {
-                            "displayName": "OS Disk Latency (Preview)"
-                        }
-                        }
-                    ],
-                    "title": "Avg OS Disk Latency (Preview) for $ResourceName",
-                    "titleKind": 1,
-                    "visualization": {
-                        "chartType": 2,
-                        "legendVisualization": {
-                        "isVisible": true,
-                        "position": 2,
-                        "hideHoverCard": false,
-                        "hideLabelNames": false
-                        },
-                        "axisVisualization": {
-                        "x": {
-                            "isVisible": true,
-                            "axisType": 2
-                        },
-                        "y": {
-                            "isVisible": true,
-                            "axisType": 1
-                        }
-                        },
-                        "disablePinning": true
-                    }
-                    }
-                }
-                }
-            }
-            }
-        }
-    }
-"@ | convertfrom-json
+    $value = build-tile -_id $($id+6) -_x 5 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk Bandwidth Consumed Percentage"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+6) -Value $value.$($id+6)
+
+    $value = build-tile -_id $($id+7) -_x 10 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk IOPS Consumed Percentage"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+7) -Value $value.$($id+7)
+
+    $value = build-tile -_id $($id+8) -_x 15 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk Latency"
     $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+8) -Value $value.$($id+8)
 
+    $value = build-tile -_id $($id+9) -_x 0 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Read Operations/Sec"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+9) -Value $value.$($id+9)
 
-$value = @"
-{
-"$($id+9)": {
-    "position": {
-      "x": 0,
-      "y": $($y+9),
-      "colSpan": 5,
-      "rowSpan": 4
-    },
-    "metadata": {
-      "inputs": [
-        {
-          "name": "options",
-          "isOptional": true
-        },
-        {
-          "name": "sharedTimeRange",
-          "isOptional": true
-        }
-      ],
-      "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-      "settings": {
-        "content": {
-          "options": {
-            "chart": {
-              "metrics": [
-                {
-                  "resourceMetadata": {
-                    "id": "$ResourceID"
-                  },
-                  "name": "Data Disk Read Operations/Sec",
-                  "aggregationType": 4,
-                  "namespace": "microsoft.compute/virtualmachines",
-                  "metricVisualization": {
-                    "displayName": "Data Disk Read Operations/Sec",
-                    "resourceDisplayName": "$ResourceName"
-                  }
-                }
-              ],
-              "title": "Avg Data Disk Read Operations/Sec for $ResourceName by LUN",
-              "titleKind": 1,
-              "visualization": {
-                "chartType": 2,
-                "legendVisualization": {
-                  "isVisible": true,
-                  "position": 2,
-                  "hideHoverCard": false,
-                  "hideLabelNames": false
-                },
-                "axisVisualization": {
-                  "x": {
-                    "isVisible": true,
-                    "axisType": 2
-                  },
-                  "y": {
-                    "isVisible": true,
-                    "axisType": 1
-                  }
-                },
-                "disablePinning": true
-              },
-              "grouping": {
-                "dimension": "LUN",
-                "sort": 2,
-                "top": 10
-              }
-            }
-          }
-        }
-      }
+    $value = build-tile -_id $($id+10) -_x 5 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Write Operations/Sec"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+10) -Value $value.$($id+10)
+
+    $value = build-tile -_id $($id+11) -_x 10 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Latency"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+11) -Value $value.$($id+11)
+
+    $value = build-tile -_id $($id+12) -_x 15 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Queue Depth"
+    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+12) -Value $value.$($id+12)
+
+    $y += 13
+    $id += 13
+    $counter += 1
+
+    if ($counter -gt 10) 
+    {
+    $filenameCount += 1
+    $starter.name = "$DashboardName-$filenameCount"
+    $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
+    Write-host -ForegroundColor yellow "Outputing to $DashboardName-$filenameCount"
+    $outFilePath = "$outputfolder\$DashboardName-$filenameCount.json"
+    $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
+    $counter = 1
+    $starter = $mainstarter | convertFrom-json
+    $y=0
     }
-  }
-}
-"@ | convertfrom-json
-$starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+9) -Value $value.$($id+9)
 
-$value=@"
-{
-"$($id+10)": {
-    "position": {
-      "x": 5,
-      "y": $($y+9),
-      "colSpan": 5,
-      "rowSpan": 4
-    },
-    "metadata": {
-      "inputs": [
-        {
-          "name": "options",
-          "isOptional": true
-        },
-        {
-          "name": "sharedTimeRange",
-          "isOptional": true
-        }
-      ],
-      "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-      "settings": {
-        "content": {
-          "options": {
-            "chart": {
-              "metrics": [
-                {
-                  "resourceMetadata": {
-                    "id": "$ResourceID"
-                  },
-                  "name": "Data Disk Write Operations/Sec",
-                  "aggregationType": 4,
-                  "namespace": "microsoft.compute/virtualmachines",
-                  "metricVisualization": {
-                    "displayName": "Data Disk Write Operations/Sec",
-                    "resourceDisplayName": "$ResourceName"
-                  }
-                }
-              ],
-              "title": "Avg Data Disk Write Operations/Sec for $ResourceName by LUN",
-              "titleKind": 1,
-              "visualization": {
-                "chartType": 2,
-                "legendVisualization": {
-                  "isVisible": true,
-                  "position": 2,
-                  "hideHoverCard": false,
-                  "hideLabelNames": false
-                },
-                "axisVisualization": {
-                  "x": {
-                    "isVisible": true,
-                    "axisType": 2
-                  },
-                  "y": {
-                    "isVisible": true,
-                    "axisType": 1
-                  }
-                },
-                "disablePinning": true
-              },
-              "grouping": {
-                "dimension": "LUN",
-                "sort": 2,
-                "top": 10
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-"@ | convertfrom-json
-$starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+10) -Value $value.$($id+10)
-
-$value=@"
-{
-  "$($id+11)": {
-    "position": {
-      "x": 10,
-      "y": $($y+9),
-      "colSpan": 5,
-      "rowSpan": 4
-    },
-    "metadata": {
-      "inputs": [
-        {
-          "name": "options",
-          "isOptional": true
-        },
-        {
-          "name": "sharedTimeRange",
-          "isOptional": true
-        }
-      ],
-      "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-      "settings": {
-        "content": {
-          "options": {
-            "chart": {
-              "metrics": [
-                {
-                  "resourceMetadata": {
-                    "id": "$ResourceID"
-                  },
-                  "name": "Network In Total",
-                  "aggregationType": 1,
-                  "namespace": "microsoft.compute/virtualmachines",
-                  "metricVisualization": {
-                    "displayName": "Network In Total",
-                    "resourceDisplayName": "$ResourceName"
-                  }
-                }
-              ],
-              "title": "Sum Network In Total for $ResourceName",
-              "titleKind": 1,
-              "visualization": {
-                "chartType": 2,
-                "legendVisualization": {
-                  "isVisible": true,
-                  "position": 2,
-                  "hideHoverCard": false,
-                  "hideLabelNames": false
-                },
-                "axisVisualization": {
-                  "x": {
-                    "isVisible": true,
-                    "axisType": 2
-                  },
-                  "y": {
-                    "isVisible": true,
-                    "axisType": 1
-                  }
-                },
-                "disablePinning": true
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-"@ | convertfrom-json
-$starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+11) -Value $value.$($id+11)
-
-$value=@"
-{
-  "$($id+12)": {
-    "position": {
-      "x": 15,
-      "y": $($y+9),
-      "colSpan": 5,
-      "rowSpan": 4
-    },
-    "metadata": {
-      "inputs": [
-        {
-          "name": "options",
-          "isOptional": true
-        },
-        {
-          "name": "sharedTimeRange",
-          "isOptional": true
-        }
-      ],
-      "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-      "settings": {
-        "content": {
-          "options": {
-            "chart": {
-              "metrics": [
-                {
-                  "resourceMetadata": {
-                    "id": "$ResourceID"
-                  },
-                  "name": "Network Out Total",
-                  "aggregationType": 1,
-                  "namespace": "microsoft.compute/virtualmachines",
-                  "metricVisualization": {
-                    "displayName": "Network Out Total",
-                    "resourceDisplayName": "$ResourceName"
-                  }
-                }
-              ],
-              "title": "Sum Network Out Total for $ResourceName",
-              "titleKind": 1,
-              "visualization": {
-                "chartType": 2,
-                "legendVisualization": {
-                  "isVisible": true,
-                  "position": 2,
-                  "hideHoverCard": false,
-                  "hideLabelNames": false
-                },
-                "axisVisualization": {
-                  "x": {
-                    "isVisible": true,
-                    "axisType": 2
-                  },
-                  "y": {
-                    "isVisible": true,
-                    "axisType": 1
-                  }
-                },
-                "disablePinning": true
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-"@ | convertfrom-json
-$starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+12) -Value $value.$($id+12)
-
-$y += 13
-$id += 13
-$counter += 1
-
-if ($counter -gt 10) 
-{
-  $filenameCount += 1
-  $starter.name = "$DashboardName-$filenameCount"
-  $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
-  Write-host -ForegroundColor yellow "Outputing to $DashboardName-$filenameCount"
-  $outFilePath = "$outputFolder\$DashboardName-$filenameCount.json"
-  $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
-  $counter = 1
-  $starter = $mainstarter | ConvertFrom-Json
-  $y = 0
-}
 }
 
-$filenameCount
 if ($filenameCount -eq 0)
 {
   Write-host -ForegroundColor yellow "Outputing to $DashboardName"
-  $outFilePath = "$outputFolder\$DashboardName.json"
+  $outFilePath = "$outputfolder\$DashboardName.json"
   $outFilePath
   $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
 } else {
@@ -1355,7 +450,7 @@ if ($filenameCount -eq 0)
     $starter.name = "$DashboardName-$filenameCount"
     $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
     Write-host -ForegroundColor yellow "Outputing to --->$DashboardName"
-    $outFilePath = "$outputFolder\$DashboardName-$filenameCount.json"
+    $outFilePath = "$outputfolder\$DashboardName-$filenameCount.json"
     $outFilePath
     $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
   }
