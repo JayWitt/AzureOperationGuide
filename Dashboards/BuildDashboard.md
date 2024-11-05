@@ -13,7 +13,7 @@ This [script](https://github.com/JayWitt/AzureOperationGuide/tree/master/Dashboa
 resources
 | where type == "microsoft.compute/virtualmachines"
 | where resourceGroup contains "Group1"
-| summarize result = strcat_array(make_list(id), ",")
+| summarize result = strcat("'",strcat_array(make_list(id), "','"),"'")
 ```
 
 Example output from Resource Graph query (where the subscriptionID, resourcegroup name, and servername fields are replaced)
