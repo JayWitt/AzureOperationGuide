@@ -4,7 +4,6 @@ This [script](https://github.com/JayWitt/AzureOperationGuide/tree/master/Dashboa
 * The script will split up the resources into groups of 10.
 * The following resource graph query will put everything into a single line and the results must be converted to be quoted with double quotes. 
 * The resource graph query is just an example to grab all of the servers in a single resource group, but can be adjusted to filter the query however you would like. The key output needed is the list of Resource IDs in an array.
-* The order of Resource IDs will be reverse in the finished dashboard. The first in the ListOfResources will be at the bottom of the dashboard. Adjust the order of the ResourceIDs to affect the order shown in the dashboard.
 * There are three fields that need to be updated:
   * Dashboard Name: This is the variable that stores the name of the dashboard which is also used for the filename.
   * ListOfResources: This is the list of Resource IDs separated by commas. Each resource ID should have double quotes.
