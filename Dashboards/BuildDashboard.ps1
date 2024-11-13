@@ -2,6 +2,20 @@ $DashboardName = "<<name of dashboard>>"
 $ListOfResources = "<<List of resource IDs>>"
 $outputFolder = "<<output folder>>"
 
+if ($PSVersionTable.PSVersion -lt [version]"7.0") 
+{
+    write-host -ForegroundColor red "This script needs Powershell 7 or higher to run"
+    exit
+}
+
+if (!($ListOfResources -is [array])) {
+  write-host -ForegroundColor Red "Please check the ListOfResources variable to make sure it is an array of Resource IDs (Could be single or double quotes)"
+  write-host -ForegroundColor Red ""
+  write-host -ForegroundColor Red "SYNTAX: ""/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx/resourceGroups/xxxxxxxxx/providers/Microsoft.Compute/virtualMachines/xxxxxxx"",""/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx/resourceGroups/xxxxxxxxx/providers/Microsoft.Compute/virtualMachines/yyyyyyyy"""
+  exit
+}
+
+
 $mainstarter = @"
 {
     "properties": {
@@ -224,7 +238,7 @@ function Build-Tile {
                                 "grouping": {
                                     "dimension": "LUN",
                                     "sort": 2,
-                                    "top": 30
+                                    "top": 50
                                 }
                                 }
                             }
@@ -369,7 +383,7 @@ function Build-Tile {
 
 $starter = $mainstarter | convertFrom-json
 $counter = 1
-$filenameCount = 0
+$filenameCount = 1
 
 $id=0
 $y = 0
@@ -425,33 +439,32 @@ foreach ($ResourceID in $ListOfResources)
 
     if ($counter -gt 10) 
     {
-    $filenameCount += 1
-    $starter.name = "$DashboardName-$filenameCount"
-    $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
-    Write-host -ForegroundColor yellow "Outputing to $DashboardName-$filenameCount"
-    $outFilePath = "$outputfolder\$DashboardName-$filenameCount.json"
-    $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
-    $counter = 1
-    $starter = $mainstarter | convertFrom-json
-    $y=0
+      $starter.name = "$DashboardName-$filenameCount"
+      $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
+      $outFilePath = "$outputfolder\$DashboardName-$filenameCount.json"
+      Write-host -ForegroundColor yellow "Outputing to $outFilePath"
+      $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
+      $counter = 1
+      $filenameCount += 1
+      $starter = $mainstarter | convertFrom-json
+      $y=0
     }
 
 }
 
-if ($filenameCount -eq 0)
+if ($filenameCount -eq 1)
 {
-  Write-host -ForegroundColor yellow "Outputing to $DashboardName"
   $outFilePath = "$outputfolder\$DashboardName.json"
-  $outFilePath
+  Write-host -ForegroundColor yellow "Outputing to $outFilePath"
   $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
 } else {
-  if ($starter.properties.lenses."0".parts."0".count -gt 0)
-  {
+
+  #if ($starter.properties.lenses."0".parts."0".count -gt 0)
+  #{
     $starter.name = "$DashboardName-$filenameCount"
     $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
-    Write-host -ForegroundColor yellow "Outputing to --->$DashboardName"
     $outFilePath = "$outputfolder\$DashboardName-$filenameCount.json"
-    $outFilePath
+    Write-host -ForegroundColor yellow "Outputing to $outFilePath"
     $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
-  }
+  #}
 }
