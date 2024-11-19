@@ -8,7 +8,7 @@ if ($PSVersionTable.PSVersion -lt [version]"7.0")
     exit
 }
 
-if (!($ListOfResources -is [array])) {
+if ((!($ListOfResources -is [array])) -and $listofResources.count -ne 1) {
   write-host -ForegroundColor Red "Please check the ListOfResources variable to make sure it is an array of Resource IDs (Could be single or double quotes)"
   write-host -ForegroundColor Red ""
   write-host -ForegroundColor Red "SYNTAX: ""/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx/resourceGroups/xxxxxxxxx/providers/Microsoft.Compute/virtualMachines/xxxxxxx"",""/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx/resourceGroups/xxxxxxxxx/providers/Microsoft.Compute/virtualMachines/yyyyyyyy"""
