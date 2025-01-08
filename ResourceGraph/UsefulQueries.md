@@ -982,3 +982,12 @@ recoveryservicesresources
 | extend VMName = split(resourceId,"/")[8]
 | project VMName,  isReplicationAgentUpdateRequired 
 ```
+
+## Report on services that use Basic Load Balancers (For checking Global VNET Peering)
+NOTE: Swap out the Sub0 and Sub1 with the subscription IDs that you would want to check or just remove the subscriptionid where clause to see all of them that you would have access to.
+```kusto
+resources
+| where subscriptionId in ("<<sub0>>","<<sub1>>")
+| where type =~ "microsoft.cache/redis" or type =~ "microsoft.network/applicationgateways" or type =~ "microsoft.compute/virtualmachinescalesets" or type =~ "microsoft.servicefabric/clusters" or type =~ "microsoft.web/hostingenvironments" or type =~ "microsoft.apimanagement/service" or type =~ "microsoft.aad/domainservices" or type =~ "Microsoft.SqlVirtualMachine/SqlVirtualMachines" or (type =~ "microsoft.network/loadbalancers" and sku.name == "Basic")
+ 
+```
