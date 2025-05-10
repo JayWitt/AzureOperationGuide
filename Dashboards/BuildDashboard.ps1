@@ -1,6 +1,7 @@
 $DashboardName = "<<name of dashboard>>"
-$ListOfResources = "<<List of resource IDs>>"
+$ListOfResources = '<<List of resource IDs>>' #Put in single quotes or in an array with section name as the first value. See docs for more details.
 $outputFolder = "<<output folder>>"
+$_region = "<<Region>>"
 
 if ($PSVersionTable.PSVersion -lt [version]"7.0") 
 {
@@ -81,16 +82,73 @@ function Build-Tile {
         [Parameter(Mandatory=$true)]
         [string] $_type,
         [Parameter(Mandatory=$true)]
-        [string] $_ResourceID,
+        $_ResourceID,
         [string] $_MetricName,
         [string] $_subTitle,
         [boolean] $_ByLUN
     )
     $tileobj = ""
+    $Filters = ""
 
-    $resourceName = $_resourceId.split("/")[-1]
+    if ($_ResourceID -is [Array])
+    {
+        if ($_ResourceId.Count -gt 11) {write-host -ForegroundColor Red "WARNING -- $($_ResourceId.Count) resources found. Maximum number of 10 resources can be viewed at a time. Consider reducing the number."}
 
-    $Namespace = "$($_resourceId.split('/')[6])/$($_resourceId.split('/')[7])"
+
+        foreach ($entry in $_ResourceID)
+        {
+            if ($entry.substring(0,1) -ne "/")
+            {
+                $ResourceName = $entry
+                if ($GroupName -eq "") {
+                    $GroupName = $entry
+                }
+
+            } else
+            {
+                $Namespace = "$($entry.split('/')[6])/$($entry.split('/')[7])"
+                $subscriptionID = "$($entry.split('/')[2])"
+                $multipleResourceIDs += """$entry"","
+            }
+        }
+
+        if ($multipleResourceIDs -ne "") {$multipleResourceIDs.substring(0,$multipleResourceIDs.Length-1)}
+
+        if (($_type -ne "Extension/HubsExtension/PartType/MarkdownPart") -and ($_MetricName -notin ("VM Uncached Bandwidth Consumed Percentage","VM Uncached IOPS Consumed Percentage","Percentage CPU","OS Disk Bandwidth Consumed Percentage","OS Disk IOPS Consumed Percentage","OS Disk Latency","Totaliops","TotalThroughput","Throughputlimitreached","ReadThroughput","WriteThroughput","AverageReadLatency","AverageWriteLatency","BitsInPerSecond","BitsOutPerSecond","EgressBandwidthUtilization","IngressBandwidthUtilization"))) 
+        {
+            write-host -ForegroundColor Red "Metric is not capable of supporting multiple resources. Skipping $_MetricName"
+            return "ERROR"
+            #break
+        }
+
+        $Filters = @"
+    ,
+                    "filterCollection": {
+                    "filters": [
+                        {
+                        "key": "Microsoft.ResourceId",
+                        "operator": 0,
+                        "values": [$multipleResourceIDs
+                        ]
+                        }
+                    ]
+                    },
+                    "grouping": {
+                    "dimension": "Microsoft.ResourceId"
+                    }
+"@
+    } else {
+        #$GroupName = ""
+        #if ($GroupName -eq "") {
+            $resourceName = $_resourceId.split("/")[-1]
+        #}
+
+      $Namespace = "$($_resourceId.split('/')[6])/$($_resourceId.split('/')[7])"
+      $subscriptionID = "$($_resourceId.split('/')[2])"
+    }
+
+    $DisplayName = "Subscription($($SubscriptionID.Substring(0,4)))"
+
 
     switch ($_type)
     {
@@ -126,8 +184,26 @@ function Build-Tile {
 "@ }
 
         "Extension/HubsExtension/PartType/MonitorChartPart" {
+
             if ($Namespace -eq "microsoft.compute/virtualmachines")
             {
+                if ($_ResourceID -is [array])
+                {
+                  $resourceMetadata =@"
+                            "region": "$_region",
+                            "resourceType": "microsoft.compute/virtualmachines",
+                            "subscription": {
+                              "subscriptionId": "$subscriptionID",
+                              "displayName": "$DisplayName",
+                              "uniqueDisplayName": "$DisplayName"
+                            }
+"@
+                } else {
+                  $resourceMetadata =@"
+                    "id": "$_ResourceID"
+"@
+                }
+
                 if ($_ByLUN)
                 {
                     $tileObj = @"
@@ -238,7 +314,7 @@ function Build-Tile {
                                 "grouping": {
                                     "dimension": "LUN",
                                     "sort": 2,
-                                    "top": 50
+                                    "top": 64
                                 }
                                 }
                             }
@@ -271,7 +347,7 @@ function Build-Tile {
                             "metrics": [
                                 {
                                 "resourceMetadata": {
-                                    "id": "$_ResourceID"
+                                    $resourceMetadata
                                 },
                                 "name": "$_metricName",
                                 "aggregationType": 4,
@@ -322,7 +398,7 @@ function Build-Tile {
                             "metrics": [
                                 {
                                 "resourceMetadata": {
-                                    "id": "$_ResourceID"
+                                    $resourceMetadata
                                 },
                                 "name": "$_metricName",
                                 "aggregationType": 4,
@@ -353,7 +429,7 @@ function Build-Tile {
                                 }
                                 },
                                 "disablePinning": true
-                            }
+                            }$Filters
                             }
                         }
                         }
@@ -362,6 +438,221 @@ function Build-Tile {
                 }
             }
 "@ }
+            } elseif ($Namespace -eq "microsoft.netapp/netappaccounts")
+            {
+                if ($_ResourceID -is [array])
+                {
+                  $resourceMetadata =@"
+                            "region": "$_region",
+                            "resourceType": "microsoft.netapp/netappaccounts/capacitypools/volumes",
+                            "subscription": {
+                              "subscriptionId": "$subscriptionID",
+                              "displayName": "$DisplayName",
+                              "uniqueDisplayName": "$DisplayName"
+                            }
+"@
+                } else {
+                  $resourceMetadata =@"
+                    "id": "$_ResourceID"
+"@
+                }
+
+                $tileObj = @"
+                {
+                "$($_id)": {
+                    "position": {
+                    "x": $_x,
+                    "y": $_y,
+                    "colSpan": 5,
+                    "rowSpan": 4
+                    },
+                    "metadata": {
+                    "inputs": [
+                        {
+                        "name": "sharedTimeRange",
+                        "isOptional": true
+                        },
+                        {
+                        "name": "options",
+                        "value": {
+                            "chart": {
+                            "metrics": [
+                                {
+                                "resourceMetadata": {
+                                    $resourceMetadata
+                                },
+                                "name": "$_metricName",
+                                "aggregationType": 4,
+                                "namespace": "microsoft.netapp/netappaccounts/capacitypools/volumes",
+                                "metricVisualization": {
+                                    "displayName": "$_metricName"
+                                }
+                                }
+                            ],
+                            "title": "[$ResourceName] $_metricName",
+                            "titleKind": 1,
+                            "visualization": {
+                                "chartType": 2,
+                                "legendVisualization": {
+                                "isVisible": true,
+                                "position": 2,
+                                "hideHoverCard": false,
+                                "hideLabelNames": false
+                                },
+                                "axisVisualization": {
+                                "x": {
+                                    "isVisible": true,
+                                    "axisType": 2
+                                },
+                                "y": {
+                                    "isVisible": true,
+                                    "axisType": 1
+                                }
+                                }
+                            }$Filters,
+                            "timespan": {
+                                "relative": {
+                                "duration": 604800000
+                                },
+                                "showUTCTime": false,
+                                "grain": 1
+                            }
+                            }
+                        },
+                        "isOptional": true
+                        }
+                    ],
+                    "type": "$_type",
+                    "settings": {
+                        "content": {
+                        "options": {
+                            "chart": {
+                            "metrics": [
+                                {
+                                "resourceMetadata": {
+                                    $resourceMetadata
+                                },
+                                "name": "$_metricName",
+                                "aggregationType": 4,
+                                "namespace": "microsoft.netapp/netappaccounts/capacitypools/volumes",
+                                "metricVisualization": {
+                                    "displayName": "$_metricName",
+                                    "resourceDisplayName": "$DisplayName"
+                                }
+                                }
+                            ],
+                            "title": "[$ResourceName] $_metricName",
+                            "titleKind": 1,
+                            "visualization": {
+                                "chartType": 2,
+                                "legendVisualization": {
+                                "isVisible": true,
+                                "position": 2,
+                                "hideHoverCard": false,
+                                "hideLabelNames": false
+                                },
+                                "axisVisualization": {
+                                "x": {
+                                    "isVisible": true,
+                                    "axisType": 2
+                                },
+                                "y": {
+                                    "isVisible": true,
+                                    "axisType": 1
+                                }
+                                },
+                                "disablePinning": true
+                            }$Filters,
+                            "grouping": {
+                                "dimension": "Microsoft.ResourceId"
+                            }
+                            }
+                        }
+                        }
+                    }
+                    }
+                }
+                }
+"@ 
+
+            } elseif ($Namespace -eq "microsoft.network/expressroutecircuits")
+            {
+
+                if ($_ResourceID -is [array])
+                {
+                    write-host -ForegroundColor Red "Error! Can't group ExpressRoute circuits."
+                    break
+                } 
+
+                $tileObj = @"
+                {
+                "$($_id)": {
+            "position": {
+                    "x": $_x,
+                    "y": $_y,
+              "colSpan": 5,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "options",
+                  "isOptional": true
+                },
+                {
+                  "name": "sharedTimeRange",
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+              "settings": {
+                "content": {
+                  "options": {
+                    "chart": {
+                      "metrics": [
+                        {
+                          "resourceMetadata": {
+                            "id": "$_ResourceID"
+                          },
+                          "name": "$_metricName",
+                          "aggregationType": 4,
+                          "namespace": "microsoft.network/expressroutecircuits",
+                          "metricVisualization": {
+                            "displayName": "$_metricName",
+                            "resourceDisplayName": "$DisplayName"
+                          }
+                        }
+                      ],
+                      "title": "[$ResourceName] $_metricName",
+                      "titleKind": 1,
+                      "visualization": {
+                        "chartType": 2,
+                        "legendVisualization": {
+                          "isVisible": true,
+                          "position": 2,
+                          "hideHoverCard": false,
+                          "hideLabelNames": true
+                        },
+                        "axisVisualization": {
+                          "x": {
+                            "isVisible": true,
+                            "axisType": 2
+                          },
+                          "y": {
+                            "isVisible": true,
+                            "axisType": 1
+                          }
+                        },
+                        "disablePinning": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+                }
+"@ 
             } elseif ($Namespace -eq "")
             {
                 $tileObj = "{}"
@@ -389,55 +680,232 @@ $id=0
 $y = 0
 foreach ($ResourceID in $ListOfResources)
 {
-    write-host $ResourceID
-    $ResourceName = $ResourceID.split("/")[8]
-    write-host $ResourceName
+    $resourceName = ""
+    $value = build-tile -_id $id -_x 0 -_y $y -_type "Extension/HubsExtension/PartType/MarkdownPart" -_ResourceID $ResourceID -_subTitle "Metrics"
+    if ($value -ne "") {
+        $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+        $id += 1 
+    }
+    
+    if ($ResourceID -is [array]) 
+    {
+
+        $ResourceType = "$($resourceId[1].split('/')[6])/$($resourceId[1].split('/')[7])"   
+        
+    } else {
+        $ResourceType = "$($resourceId.split('/')[6])/$($resourceId.split('/')[7])"
+    }
+
+    if ($ResourceType -eq "microsoft.compute/virtualmachines")
+    {
+        $UseRow2 = 0
+        $UseRow3 = 0
+        $UseRow4 = 0
+
+        $value = build-tile -_id $($id) -_x 0 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "VM Uncached Bandwidth Consumed Percentage"
+        
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 5 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "VM Uncached IOPS Consumed Percentage"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 10 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Network In Total"
+        if ($value -notcontains "ERROR") {
+
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 15 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Network Out Total" 
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 0 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Percentage CPU"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $UseRow2 = 4
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 5 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk Bandwidth Consumed Percentage"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $UseRow2 = 4
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 10 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk IOPS Consumed Percentage"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $UseRow2 = 4
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 15 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk Latency"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $UseRow2 = 4
+            $id += 1 
+        }
+
+    
+        if ($_ResourceID -isnot [array]){
+            $value = build-tile -_id $($id) -_x 0 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Read Operations/Sec"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow3 = 4
+                $id += 1 
+            }
+        
+            $value = build-tile -_id $($id) -_x 5 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Write Operations/Sec"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow3 = 4
+                $id += 1 
+            }
+        
+            $value = build-tile -_id $($id) -_x 10 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Read Bytes/Sec"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow3 = 4
+                $id += 1 
+            }
+        
+            $value = build-tile -_id $($id) -_x 15 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Write Bytes/Sec"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow3 = 4
+                $id += 1 
+            }
+
+            $value = build-tile -_id $($id) -_x 0 -_y $($y+13) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Bandwidth Consumed Percentage"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow4 = 4
+                $id += 1 
+            }
+        
+            $value = build-tile -_id $($id) -_x 5 -_y $($y+13) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk IOPS Consumed Percentage"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow4 = 4
+                $id += 1 
+            }
+        
+            $value = build-tile -_id $($id) -_x 10 -_y $($y+13) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Latency"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow4 = 4
+                $id += 1 
+            }
+        
+            $value = build-tile -_id $($id) -_x 15 -_y $($y+13) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Queue Depth"
+            if ($value -notcontains "ERROR") {
+                $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+                $useRow4 = 4
+                $id += 1 
+            }
+
+            $y = $y + $UseRow2 + $UseRow3 + $UseRow4 + 4 + 1
+        } else {
+            $y += 9
+        }
+    
+        $counter += 1   
+    }
+
+    if ($ResourceType -eq "microsoft.netapp/netappaccounts")
+    {
+        $value = build-tile -_id $($id) -_x 0 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Totaliops"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 5 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "TotalThroughput"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 10 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Throughputlimitreached"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+
+        $value = build-tile -_id $($id) -_x 0 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "ReadThroughput"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+
+        $value = build-tile -_id $($id) -_x 5 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "WriteThroughput"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+
+        $value = build-tile -_id $($id) -_x 10 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "AverageReadLatency"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+
+        $value = build-tile -_id $($id) -_x 15 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "AverageWriteLatency"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
 
 
-    $value = build-tile -_id $id -_x 0 -_y $y -_type "Extension/HubsExtension/PartType/MarkdownPart" -_ResourceID $ResourceID -_subTitle "Server Metrics"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $id -Value $value.$id
+        $y += 9
+        #$id += 5
+        $counter += 1   
+    }
 
-    $value = build-tile -_id $($id+1) -_x 0 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "VM Uncached Bandwidth Consumed Percentage"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+1) -Value $value.$($id+1)
+    if ($ResourceType -eq "microsoft.network/expressroutecircuits")
+    {
+        $value = build-tile -_id $($id) -_x 0 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "BitsInPerSecond"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 5 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "BitsOutPerSecond"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
+    
+        $value = build-tile -_id $($id) -_x 10 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "EgressBandwidthUtilization"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
 
-    $value = build-tile -_id $($id+2) -_x 5 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "VM Uncached IOPS Consumed Percentage"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+2) -Value $value.$($id+2)
+        $value = build-tile -_id $($id) -_x 15 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "IngressBandwidthUtilization"
+        if ($value -notcontains "ERROR") {
+            $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id) -Value $value.$($id)
+            $id += 1 
+        }
 
-    $value = build-tile -_id $($id+3) -_x 10 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Network In Total"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+3) -Value $value.$($id+3)
+        $y += 5
+        #$id += 5
+        $counter += 1   
+    }
 
-    $value = build-tile -_id $($id+4) -_x 15 -_y $($y+1) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Network Out Total" 
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+4) -Value $value.$($id+4)
 
-    $value = build-tile -_id $($id+5) -_x 0 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "Percentage CPU"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+5) -Value $value.$($id+5)
 
-    $value = build-tile -_id $($id+6) -_x 5 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk Bandwidth Consumed Percentage"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+6) -Value $value.$($id+6)
-
-    $value = build-tile -_id $($id+7) -_x 10 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk IOPS Consumed Percentage"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+7) -Value $value.$($id+7)
-
-    $value = build-tile -_id $($id+8) -_x 15 -_y $($y+5) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ResourceID $ResourceID -_MetricName "OS Disk Latency"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+8) -Value $value.$($id+8)
-
-    $value = build-tile -_id $($id+9) -_x 0 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Read Operations/Sec"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+9) -Value $value.$($id+9)
-
-    $value = build-tile -_id $($id+10) -_x 5 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Write Operations/Sec"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+10) -Value $value.$($id+10)
-
-    $value = build-tile -_id $($id+11) -_x 10 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Latency"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+11) -Value $value.$($id+11)
-
-    $value = build-tile -_id $($id+12) -_x 15 -_y $($y+9) -_type "Extension/HubsExtension/PartType/MonitorChartPart" -_ByLUN $true -_ResourceID $ResourceID -_MetricName "Data Disk Queue Depth"
-    $starter.properties.lenses."0".parts | add-Member -MemberType NoteProperty -Name $($id+12) -Value $value.$($id+12)
-
-    $y += 13
-    $id += 13
-    $counter += 1
-
-    if ($counter -gt 10) 
+    if ($counter -gt 13) 
     {
       $starter.name = "$DashboardName-$filenameCount"
       $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
@@ -459,8 +927,6 @@ if ($filenameCount -eq 1)
   $starter | ConvertTo-Json -depth 100 | Out-File $outFilePath
 } else {
 
-  #if ($starter.properties.lenses."0".parts."0".count -gt 0)
-  #{
     $starter.name = "$DashboardName-$filenameCount"
     $starter.tags.'hidden-title' = "$DashboardName-$filenameCount"
     $outFilePath = "$outputfolder\$DashboardName-$filenameCount.json"
