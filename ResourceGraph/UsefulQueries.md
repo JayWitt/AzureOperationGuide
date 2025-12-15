@@ -693,6 +693,111 @@ resources
 | order by VMName, DataDiskLun asc
 ```
 
+## Report on VM Configuration at scale (Consolidated: one VM per row)
+```kusto
+resources
+| where type in~ ('microsoft.compute/virtualmachines', 'microsoft.baremetalinfrastructure/baremetalinstances')
+| extend VMSize = iif(isempty(properties.hardwareProfile.vmSize),
+                      properties.hardwareProfile.azureBareMetalInstanceSize,
+                      properties.hardwareProfile.vmSize)
+| extend ComputerName   = properties.extended.instanceView.computerName
+| extend OSName         = properties.extended.instanceView.osName
+| extend OSVersion      = properties.extended.instanceView.osVersion
+| extend ImgOSPublisher = properties.storageProfile.imageReference.publisher
+| extend ImgOSOffer     = properties.storageProfile.imageReference.offer
+| extend ImgOSSKU       = properties.storageProfile.imageReference.sku
+| extend AvailSet       = properties.availabilitySet.id
+| extend PPG            = properties.proximityPlacementGroup
+| extend OSDiskName     = properties.storageProfile.osDisk.name
+| extend OSDiskId       = tolower(tostring(properties.storageProfile.osDisk.managedDisk.id))
+| extend cc             = iff(isempty(properties.osProfile.linuxConfiguration),
+                              properties.osProfile.windowsConfiguration,
+                              properties.osProfile.linuxConfiguration)
+| extend VMAgent        = cc.provisionVMAgent
+| extend PatchMode      = cc.patchSettings.patchMode
+| where ImgOSPublisher != "dellemc"
+| extend VMName   = name
+| extend VMStatus = properties.extended.instanceView.powerState.displayStatus
+| project id, VMName, ComputerName, location, resourceGroup, subscriptionId,
+          VMSize, VMStatus, OSName, OSVersion, ImgOSPublisher, ImgOSOffer, ImgOSSKU,
+          AvailSet, PPG, OSDiskName, OSDiskId, VMAgent, PatchMode
+| join kind=leftouter (
+    resources
+    | where type =~ 'microsoft.compute/disks'
+    | extend oSku  = sku.name
+    | extend oSize = properties.diskSizeGB
+    | extend oIOPS = properties.diskIOPSReadWrite
+    | extend oMbps = properties.diskMBpsReadWrite
+    | extend oState = properties.diskState
+    | extend oTier  = properties.tier
+    | project OSDiskId = tolower(tostring(id)), oSku, oSize, oIOPS, oMbps, oState, oTier
+) on OSDiskId
+| join kind=leftouter (
+    resources
+    | where type in~ ('microsoft.compute/virtualmachines', 'microsoft.baremetalinfrastructure/baremetalinstances')
+    | extend vmId = id
+    | mv-expand dd = iff(tostring(properties.storageProfile.dataDisks) == '[]',
+                         parse_json('[]'),
+                         properties.storageProfile.dataDisks)
+    | extend DataDiskName  = tostring(dd.name)
+    | extend DataDiskID    = tolower(tostring(dd.managedDisk.id))
+    | extend DataDiskSize  = toint(dd.diskSizeGB)
+    | extend DataDiskCache = tostring(dd.caching)
+    | extend DataDiskLun   = tostring(dd.lun)
+    | join kind=leftouter (
+        resources
+        | where type =~ 'microsoft.compute/disks'
+        | extend dSku  = sku.name
+        | extend dSize = properties.diskSizeGB
+        | extend dIOPS = properties.diskIOPSReadWrite
+        | extend dMbps = properties.diskMBpsReadWrite
+        | extend dState = properties.diskState
+        | extend dTier  = properties.tier
+        | project DataDiskID = tolower(tostring(id)), dSku, dSize, dIOPS, dMbps, dState, dTier
+    ) on DataDiskID
+    | extend DataDiskInfo = strcat(
+        'LUN=', coalesce(DataDiskLun, ''),
+        '|Name=', coalesce(DataDiskName, ''),
+        '|SizeGB=', coalesce(tostring(DataDiskSize), tostring(dSize), ''),
+        '|SKU=', coalesce(dSku, ''),
+        '|IOPS=', coalesce(tostring(dIOPS), ''),
+        '|MBps=', coalesce(tostring(dMbps), ''),
+        '|Cache=', coalesce(DataDiskCache, ''),
+        '|State=', coalesce(dState, ''),
+        '|Tier=', coalesce(dTier, '')
+    )
+    | summarize DataDisks = strcat_array(make_list(DataDiskInfo), '; ') by id = vmId
+    | extend DataDisks = iif(isempty(DataDisks), 'None', DataDisks)
+    | project id, DataDisks
+) on id
+| join kind=leftouter (
+    resources
+    | where type in~ ('microsoft.compute/virtualmachines', 'microsoft.baremetalinfrastructure/baremetalinstances')
+    | extend vmId = id
+    | mv-expand nic = properties.networkProfile.networkInterfaces
+    | extend nicID = tostring(nic.id)
+    | join kind=leftouter (
+        resources
+        | where type =~ 'microsoft.network/networkinterfaces'
+        | mv-expand ip = properties.ipConfigurations
+        | extend privateIP = tostring(ip.properties.privateIPAddress)
+        | project nicID = tostring(id), privateIP
+    ) on nicID
+    | extend ipAddr = iff(isempty(tostring(nic.ipAddress)), privateIP, tostring(nic.ipAddress))
+    | summarize ipAddrs = strcat_array(make_set(ipAddr), ', ') by id = vmId
+    | extend ipAddrs = iif(isempty(ipAddrs), 'None', ipAddrs)
+    | project id, ipAddrs
+) on id
+| project VMName, ComputerName, location, resourceGroup, subscriptionId,
+          VMSize, VMStatus, ipAddrs,
+          OSName, OSVersion, ImgOSPublisher, ImgOSOffer, ImgOSSKU,
+          AvailSet, PPG,
+          OSDiskName, oSize, oSku, oIOPS, oMbps,
+          DataDisks,
+          VMAgent, PatchMode
+
+```
+
 ## Report on NetApp Volume Configuration at scale
 ```kusto
 resources
